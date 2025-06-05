@@ -1,0 +1,193 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  phone     String?
+  role      String   @default("CONTRIBUTOR") // UserRole: CONTRIBUTOR, MANAGER, OBSERVER, ADMIN
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Profile information
+  bio               String?
+  preferredLanguage String?
+  location          String?
+
+  // Notification preferences
+  emailNotifications Boolean @default(true)
+  smsNotifications   Boolean @default(false)
+
+  // Relationships
+  recordings Recording[]
+  sessions   Session[]
+
+  @@map("users")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model NameList {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  pageNumber  Int
+  names       String   // JSON string of names array: ["Name 1", "Name 2", ...]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Metadata
+  totalNames    Int
+  language      String   @default("en")
+  category      String?
+  instructions  String?
+
+  // Relationships
+  recordings Recording[]
+
+  @@map("name_lists")
+}
+
+model Recording {
+  id               String            @id @default(cuid())
+  title            String?
+  
+  // File information
+  fileName         String
+  filePath         String
+  fileSize         Int?
+  mimeType         String?
+  duration         Float? // in seconds
+  
+  // Recording metadata
+  recordingMethod  String            // RecordingMethod: LIVE_BROWSER, OFFLINE_UPLOAD
+  deviceInfo       String?
+  recordingQuality String?           // RecordingQuality: LOW, MEDIUM, HIGH, LOSSLESS
+  
+  // Processing status
+  status           String            @default("UPLOADED") // RecordingStatus: UPLOADED, PROCESSING, PROCESSED, APPROVED, REJECTED, QUEUED_FOR_EXHIBITION
+  processingNotes  String?
+  normalizedPath   String? // Path to normalized audio file
+  
+  // Relationships
+  userId           String
+  user             User              @relation(fields: [userId], references: [id])
+  nameListId       String
+  nameList         NameList          @relation(fields: [nameListId], references: [id])
+  
+  // Exhibition
+  exhibitionQueue  ExhibitionQueue?
+  
+  // Timestamps
+  recordedAt       DateTime?
+  uploadedAt       DateTime          @default(now())
+  processedAt      DateTime?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  @@map("recordings")
+}
+
+model ExhibitionQueue {
+  id               String    @id @default(cuid())
+  
+  // Queue position and status
+  position         Int       @unique
+  played           Boolean   @default(false)
+  playedAt         DateTime?
+  
+  // Playback metadata
+  playbackDuration Float? // actual playback duration
+  skipReason       String? // if skipped, why?
+  
+  // Relationships
+  recordingId      String    @unique
+  recording        Recording @relation(fields: [recordingId], references: [id])
+  
+  // Timestamps
+  queuedAt         DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@map("exhibition_queue")
+}
+
+model ContributorNotification {
+  id          String             @id @default(cuid())
+  userId      String
+  type        String             // NotificationType: WELCOME, REMINDER, ASSIGNMENT, DEADLINE, SYSTEM_UPDATE
+  method      String             // NotificationMethod: EMAIL, SMS
+  
+  // Content
+  subject     String
+  message     String
+  metadata    String? // JSON for additional data
+  
+  // Delivery status
+  status      String            @default("PENDING") // NotificationStatus: PENDING, SENT, DELIVERED, FAILED, CANCELLED
+  sentAt      DateTime?
+  deliveredAt DateTime?
+  errorMsg    String?
+  
+  // Scheduling
+  scheduledFor DateTime?
+  retryCount   Int               @default(0)
+  maxRetries   Int               @default(3)
+  
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  @@map("contributor_notifications")
+}
+
+model SystemSettings {
+  id    String @id @default("system")
+  
+  // Exhibition settings
+  exhibitionActive     Boolean @default(false)
+  currentPosition      Int?
+  playbackSpeed        Float   @default(1.0)
+  pauseBetweenRecordings Int   @default(2) // seconds
+  
+  // Upload limits
+  maxFileSizeMB        Int     @default(50)
+  allowedFileTypes     String  @default("[\"mp3\",\"wav\",\"m4a\"]") // JSON string array
+  
+  // Processing settings
+  audioNormalization   Boolean @default(true)
+  targetLoudness       Float   @default(-23.0) // LUFS
+  
+  // Notification settings
+  reminderFrequencyDays Int    @default(7)
+  
+  updatedAt           DateTime @updatedAt
+
+  @@map("system_settings")
+}
+
+// Type definitions for string enums (for TypeScript)
+// UserRole: "CONTRIBUTOR" | "MANAGER" | "OBSERVER" | "ADMIN"
+// RecordingMethod: "LIVE_BROWSER" | "OFFLINE_UPLOAD"  
+// RecordingQuality: "LOW" | "MEDIUM" | "HIGH" | "LOSSLESS"
+// RecordingStatus: "UPLOADED" | "PROCESSING" | "PROCESSED" | "APPROVED" | "REJECTED" | "QUEUED_FOR_EXHIBITION"
+// NotificationType: "WELCOME" | "REMINDER" | "ASSIGNMENT" | "DEADLINE" | "SYSTEM_UPDATE"
+// NotificationMethod: "EMAIL" | "SMS"
+// NotificationStatus: "PENDING" | "SENT" | "DELIVERED" | "FAILED" | "CANCELLED"

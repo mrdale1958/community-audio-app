@@ -1,5 +1,9 @@
 import { Container, Typography, Box, Card, CardContent, Grid, Button } from '@mui/material'
-import { MicIcon, UploadIcon, PlayArrowIcon, VisibilityIcon, SettingsIcon } from '@mui/icons-material'
+import MicIcon from '@mui/icons-material/Mic'
+import UploadFileIcon from '@mui/icons-material/UploadFile'
+import PlayArrowIcon from '@mui/icons-material/PlayArrow'
+import VisibilityIcon from '@mui/icons-material/Visibility'
+import SettingsIcon from '@mui/icons-material/Settings'
 import Link from 'next/link'
 
 export default function HomePage() {
@@ -14,7 +18,7 @@ export default function HomePage() {
     {
       title: 'Offline Contribution', 
       description: 'Download name lists and upload your audio recordings',
-      icon: <UploadIcon sx={{ fontSize: 40 }} />,
+      icon: <UploadFileIcon sx={{ fontSize: 40 }} />,
       href: '/contribute/offline',
       color: 'secondary.main'
     },
