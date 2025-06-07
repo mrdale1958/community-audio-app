@@ -1,6 +1,6 @@
-# Community Audio Recording Project
+# Read My Name
 
-A web application for managing community-sourced audio recordings of community members reading pages of names.
+A web application for managing community-sourced audio recordings of community members reading pages of names from the AIDS Memorial Quilt.
 
 ## Features
 

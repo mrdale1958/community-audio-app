@@ -40,7 +40,7 @@ export default function HomePage() {
       title: 'Manage',
       description: 'Administrative tools and project management',
       icon: <SettingsIcon sx={{ fontSize: 40 }} />,
-      href: '/manage',
+      href: '/admin',
       color: 'warning.main'
     }
   ]
@@ -49,10 +49,10 @@ export default function HomePage() {
     <Container maxWidth="lg" sx={{ py: 4 }}>
       <Box textAlign="center" mb={6}>
         <Typography variant="h2" component="h1" gutterBottom>
-          Community Audio Recording Project
+          Read My Name
         </Typography>
         <Typography variant="h6" color="text.secondary" sx={{ mb: 4 }}>
-          Collecting community voices, one name at a time
+          Collecting readings of the names from the AIDS Memorial Quilt
         </Typography>
       </Box>
 

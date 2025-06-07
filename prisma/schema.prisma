@@ -13,6 +13,7 @@ datasource db {
 model User {
   id        String   @id @default(cuid())
   email     String   @unique
+  password  String?  // Add this line
   name      String?
   phone     String?
   role      String   @default("CONTRIBUTOR") // UserRole: CONTRIBUTOR, MANAGER, OBSERVER, ADMIN
@@ -95,7 +96,7 @@ model Recording {
   nameList         NameList          @relation(fields: [nameListId], references: [id])
   
   // Exhibition
-  exhibitionQueue  ExhibitionQueue?
+  exhibitionQueue  ExhibitionQueue[]
   
   // Timestamps
   recordedAt       DateTime?
@@ -111,7 +112,7 @@ model ExhibitionQueue {
   id               String    @id @default(cuid())
   
   // Queue position and status
-  position         Int       @unique
+  position         Int       
   played           Boolean   @default(false)
   playedAt         DateTime?
   
@@ -120,13 +121,19 @@ model ExhibitionQueue {
   skipReason       String? // if skipped, why?
   
   // Relationships
-  recordingId      String    @unique
-  recording        Recording @relation(fields: [recordingId], references: [id])
+  recordingId      String   
+  recording   Recording @relation(fields: [recordingId], references: [id], onDelete: Cascade)
   
   // Timestamps
   queuedAt         DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 
+
+  createdAt   DateTime  @default(now())
+
+
+  @@unique([recordingId]) // Prevent duplicate recordings in queue
+  @@unique([position])    // Ensure unique positions
   @@map("exhibition_queue")
 }
 

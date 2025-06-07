@@ -20,6 +20,10 @@ const nextConfig = {
   env: {
     NEXTAUTH_URL: process.env.NEXTAUTH_URL || 'http://localhost:3000',
   },
+  serverRuntimeConfig: {
+    // Will only be available on the server side
+    maxUploadSize: '50mb',
+  },
 }
 
 module.exports = nextConfig

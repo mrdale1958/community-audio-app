@@ -20,7 +20,12 @@ dist/
 *.sqlite3
 
 # Audio uploads (for development)
-uploads/
+# Add this line to .gitignore
+# Audio uploads
+uploads/*.webm
+uploads/*.mp3
+uploads/*.wav
+!uploads/.gitkeep
 public/uploads/
 temp-audio/
 
