@@ -2,12 +2,13 @@ import './globals.css'
 import { Inter } from 'next/font/google'
 import { ThemeProvider } from '@/components/providers/ThemeProvider'
 import { AuthProvider } from '@/components/providers/AuthProvider'
+import Header from '@/components/layout/Header'
 
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata = {
   title: 'Community Audio Recording Project',
-  description: 'A platform for community-sourced audio recordings',
+  description: 'Collecting community voices, one name at a time',
 }
 
 export default function RootLayout({
@@ -18,11 +19,14 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <AuthProvider>
-          <ThemeProvider>
-            {children}
-          </ThemeProvider>
-        </AuthProvider>
+        <ThemeProvider>
+          <AuthProvider>
+            <Header />
+            <main>
+              {children}
+            </main>
+          </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   )

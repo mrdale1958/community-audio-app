@@ -2,6 +2,8 @@
 const nextConfig = {
   experimental: {
     appDir: true,
+    serverComponentsExternalPackages: ['@prisma/client'],
+
   },
   // Audio file upload configuration
   api: {
@@ -23,3 +25,4 @@ const nextConfig = {
 }
 
 module.exports = nextConfig
+
