@@ -1,40 +1,52 @@
-import { useState, useRef } from 'react';
+// hooks/useAudioPlayer.ts
+import { useState, useEffect, useCallback } from 'react'
+import type { Recording } from '../types/manage'
 
-export const useAudioPlayer = () => {
-  const [playingId, setPlayingId] = useState<string | null>(null);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+export function useAudioPlayer() {
+  const [playingId, setPlayingId] = useState<string | null>(null)
+  const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(null)
 
-  const playPause = async (recordingId: string) => {
-    if (playingId === recordingId) {
-      if (audioRef.current) {
-        audioRef.current.pause();
-        setPlayingId(null);
+  const toggleAudio = useCallback(async (recording: Recording) => {
+    try {
+      if (playingId === recording.id) {
+        audioElement?.pause()
+        setPlayingId(null)
+        return
       }
-    } else {
-      if (audioRef.current) {
-        audioRef.current.pause();
+
+      if (audioElement) {
+        audioElement.pause()
+        audioElement.currentTime = 0
       }
-      
-      const audio = new Audio(`/api/recordings/${recordingId}/audio`);
-      audio.addEventListener('ended', () => setPlayingId(null));
+
+      const audio = new Audio(`/api/recordings/${recording.id}/audio`)
+      audio.addEventListener('ended', () => setPlayingId(null))
       audio.addEventListener('error', () => {
-        console.error('Error playing audio');
-        setPlayingId(null);
-      });
-      
-      try {
-        await audio.play();
-        audioRef.current = audio;
-        setPlayingId(recordingId);
-      } catch (error) {
-        console.error('Failed to play audio:', error);
+        console.error('Failed to play audio')
+        setPlayingId(null)
+      })
+
+      await audio.play()
+      setAudioElement(audio)
+      setPlayingId(recording.id)
+
+    } catch (err) {
+      console.error('Audio playback error:', err)
+    }
+  }, [playingId, audioElement])
+
+  // Cleanup audio on unmount
+  useEffect(() => {
+    return () => {
+      if (audioElement) {
+        audioElement.pause()
+        audioElement.currentTime = 0
       }
     }
-  };
+  }, [audioElement])
 
   return {
     playingId,
-    playPause,
-    isPlaying: (id: string) => playingId === id,
-  };
-};
+    toggleAudio
+  }
+}
