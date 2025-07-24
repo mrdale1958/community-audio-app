@@ -15,6 +15,7 @@ import {
   Alert
 } from '@mui/material';
 import { PlayArrow, Stop, VolumeUp } from '@mui/icons-material';
+import UpcomingExhibitions from '@/components/UpcomingExhibitions';
 
 interface ObserveStats {
   totalNames: number;
@@ -140,6 +141,7 @@ export default function ObservePage() {
         This community effort aims to record every name memorialized on the AIDS Memorial Quilt, 
         to be played back over the course of installations of the show Narrative Threads.
       </Typography>
+      <UpcomingExhibitions />
 
       {/* Main Progress Card */}
       <Paper sx={{ p: 3, mb: 3 }}>

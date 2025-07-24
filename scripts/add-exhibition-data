@@ -1,0 +1,78 @@
+-- Migration: Add Exhibition Support
+-- Run this after updating your schema.prisma file
+
+-- Add new columns to existing tables
+ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'CONTRIBUTOR' CHECK (role IN ('CONTRIBUTOR', 'MANAGER', 'OBSERVER', 'ADMIN', 'GALLERIST'));
+
+ALTER TABLE recordings ADD COLUMN fileHash TEXT;
+ALTER TABLE recordings ADD COLUMN isCorrupted BOOLEAN DEFAULT false;
+ALTER TABLE recordings ADD COLUMN lastQualityCheck DATETIME;
+ALTER TABLE recordings ADD COLUMN duration REAL;
+
+-- Update existing users with default role if not set
+UPDATE users SET role = 'CONTRIBUTOR' WHERE role IS NULL;
+
+-- Create new tables for exhibition functionality
+CREATE TABLE exhibitions (
+    id TEXT PRIMARY KEY,
+    title TEXT NOT NULL,
+    description TEXT,
+    startDate DATETIME NOT NULL,
+    endDate DATETIME NOT NULL,
+    isActive BOOLEAN DEFAULT false,
+    psaFrequency INTEGER DEFAULT 50,
+    galleryHours TEXT NOT NULL, -- JSON
+    settings TEXT, -- JSON
+    createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+    galleristId TEXT NOT NULL,
+    FOREIGN KEY (galleristId) REFERENCES users (id)
+);
+
+CREATE TABLE exhibition_psas (
+    id TEXT PRIMARY KEY,
+    filename TEXT NOT NULL,
+    title TEXT NOT NULL,
+    filesize INTEGER NOT NULL,
+    duration REAL,
+    isActive BOOLEAN DEFAULT true,
+    createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+    exhibitionId TEXT NOT NULL,
+    FOREIGN KEY (exhibitionId) REFERENCES exhibitions (id) ON DELETE CASCADE
+);
+
+CREATE TABLE exhibition_queue (
+    id TEXT PRIMARY KEY,
+    position INTEGER NOT NULL,
+    hasPlayed BOOLEAN DEFAULT false,
+    playedAt DATETIME,
+    queueCycle INTEGER DEFAULT 1,
+    createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+    exhibitionId TEXT NOT NULL,
+    recordingId TEXT NOT NULL,
+    FOREIGN KEY (exhibitionId) REFERENCES exhibitions (id) ON DELETE CASCADE,
+    FOREIGN KEY (recordingId) REFERENCES recordings (id) ON DELETE CASCADE,
+    UNIQUE (exhibitionId, recordingId, queueCycle)
+);
+
+CREATE TABLE exhibition_playback_logs (
+    id TEXT PRIMARY KEY,
+    itemType TEXT NOT NULL CHECK (itemType IN ('RECORDING', 'PSA')),
+    itemId TEXT NOT NULL,
+    playedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+    duration REAL,
+    wasSkipped BOOLEAN DEFAULT false,
+    exhibitionId TEXT NOT NULL,
+    FOREIGN KEY (exhibitionId) REFERENCES exhibitions (id) ON DELETE CASCADE
+);
+
+-- Create indexes for better performance
+CREATE INDEX idx_exhibitions_gallerist ON exhibitions(galleristId);
+CREATE INDEX idx_exhibitions_active ON exhibitions(isActive);
+CREATE INDEX idx_exhibition_queue_exhibition ON exhibition_queue(exhibitionId);
+CREATE INDEX idx_exhibition_queue_position ON exhibition_queue(exhibitionId, position);
+CREATE INDEX idx_exhibition_queue_played ON exhibition_queue(exhibitionId, hasPlayed);
+CREATE INDEX idx_exhibition_logs_exhibition ON exhibition_playback_logs(exhibitionId);
+CREATE INDEX idx_exhibition_logs_played_at ON exhibition_playback_logs(playedAt);
+CREATE INDEX idx_recordings_hash ON recordings(fileHash);
+CREATE INDEX idx_recordings_corrupted ON recordings(isCorrupted);

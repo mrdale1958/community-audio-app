@@ -2,6 +2,9 @@
   "name": "community-audio-app",
   "version": "0.1.0",
   "private": true,
+  "prisma": {
+    "seed": "node prisma/seed.js"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -10,7 +13,9 @@
     "type-check": "tsc --noEmit",
     "db:studio": "npx prisma studio",
     "db:inspect": "sqlite3 prisma/dev.db",
-    "db:backup": "cp prisma/dev.db prisma/dev.db.backup"
+    "db:backup": "cp prisma/dev.db prisma/dev.db.backup",
+    "seed": "npx prisma db seed",
+    "seed:reset": "npx prisma migrate reset --force"
   },
   "dependencies": {
     "@emotion/cache": "^11.11.0",
@@ -21,6 +26,7 @@
     "bcrypt": "^6.0.0",
     "bcryptjs": "^2.4.3",
     "jspdf": "^3.0.1",
+    "lucide-react": "^0.525.0",
     "next": "14.2.3",
     "next-auth": "^4.24.7",
     "node-fetch": "^2.7.0",

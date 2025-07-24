@@ -1,0 +1,5 @@
+{
+    "key": "ctrl+shift+v",
+    "command": "workbench.action.tasks.runTask",
+    "args": "Paste to file from clipboard"
+}

@@ -1,0 +1,277 @@
+import { prisma } from './prisma';
+
+export interface AudioLevelAnalysis {
+  recordingId: string;
+  averageDb: number;
+  peakDb: number;
+  rmsLevel: number;
+  dynamicRange: number;
+  clippingDetected: boolean;
+}
+
+export interface SoundCheckSequence {
+  quietestRecording: AudioLevelAnalysis;
+  loudestRecording: AudioLevelAnalysis;
+  mediumRecordings: AudioLevelAnalysis[];
+  sequence: Array<{
+    recordingId: string;
+    type: 'quiet' | 'loud' | 'medium';
+    expectedDb: number;
+    duration: number;
+  }>;
+}
+
+/**
+ * Analyze audio file for volume levels and dynamics
+ * This would integrate with Web Audio API or a server-side audio analysis tool
+ */
+export async function analyzeAudioLevels(filePath: string): Promise<AudioLevelAnalysis> {
+  // This is a placeholder - in production you'd use:
+  // - Web Audio API for client-side analysis
+  // - FFmpeg with loudnorm filter for server-side analysis
+  // - Dedicated audio analysis libraries like librosa (Python) or essentia.js
+  
+  return new Promise((resolve) => {
+    // Simulated analysis - replace with actual audio processing
+    setTimeout(() => {
+      resolve({
+        recordingId: '',
+        averageDb: -23 + (Math.random() * 20), // -23dB to -3dB range
+        peakDb: -6 + (Math.random() * 6), // -6dB to 0dB range
+        rmsLevel: 0.1 + (Math.random() * 0.8), // 0.1 to 0.9
+        dynamicRange: 5 + (Math.random() * 15), // 5dB to 20dB range
+        clippingDetected: Math.random() < 0.1 // 10% chance of clipping
+      });
+    }, 100);
+  });
+}
+
+/**
+ * Generate sound check sequence alternating between quiet and loud recordings
+ */
+export async function generateSoundCheckSequence(exhibitionId: string): Promise<SoundCheckSequence> {
+  // Get all recordings for the exhibition with their audio analysis
+  const recordings = await prisma.recording.findMany({
+    where: {
+      status: 'APPROVED',
+      exhibitionQueueItems: {
+        some: {
+          exhibitionId: exhibitionId
+        }
+      }
+    },
+    include: {
+      nameList: true,
+      user: {
+        select: { name: true, email: true }
+      }
+    }
+  });
+
+  // Analyze audio levels for each recording
+  const audioAnalyses: AudioLevelAnalysis[] = [];
+  
+  for (const recording of recordings) {
+    const analysis = await analyzeAudioLevels(`./uploads/${recording.filename}`);
+    analysis.recordingId = recording.id;
+    audioAnalyses.push(analysis);
+  }
+
+  // Sort by average dB level
+  audioAnalyses.sort((a, b) => a.averageDb - b.averageDb);
+
+  const quietestRecording = audioAnalyses[0];
+  const loudestRecording = audioAnalyses[audioAnalyses.length - 1];
+  const mediumRecordings = audioAnalyses.slice(1, -1);
+
+  // Generate alternating sequence: quiet -> loud -> medium -> quiet -> loud...
+  const sequence = [];
+  let useQuiet = true;
+  
+  for (let i = 0; i < Math.min(10, audioAnalyses.length); i++) {
+    if (useQuiet) {
+      sequence.push({
+        recordingId: quietestRecording.recordingId,
+        type: 'quiet' as const,
+        expectedDb: quietestRecording.averageDb,
+        duration: 30 // 30 seconds
+      });
+    } else {
+      sequence.push({
+        recordingId: loudestRecording.recordingId,
+        type: 'loud' as const,
+        expectedDb: loudestRecording.averageDb,
+        duration: 30
+      });
+    }
+    useQuiet = !useQuiet;
+  }
+
+  return {
+    quietestRecording,
+    loudestRecording,
+    mediumRecordings,
+    sequence
+  };
+}
+
+/**
+ * Audio effects processing chain
+ */
+export class AudioEffectsProcessor {
+  private audioContext: AudioContext;
+  private effectsChain: AudioNode[] = [];
+  
+  constructor() {
+    this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+  }
+
+  /**
+   * Create reverb effect using convolution
+   */
+  createReverbEffect(roomType: 'hall' | 'cathedral' | 'studio' | 'plate'): ConvolverNode {
+    const convolver = this.audioContext.createConvolver();
+    
+    // In production, you'd load actual impulse response files
+    // For now, we'll create a synthetic reverb
+    const length = this.audioContext.sampleRate * (roomType === 'cathedral' ? 4 : 2);
+    const impulse = this.audioContext.createBuffer(2, length, this.audioContext.sampleRate);
+    
+    for (let channel = 0; channel < 2; channel++) {
+      const channelData = impulse.getChannelData(channel);
+      for (let i = 0; i < length; i++) {
+        const decay = Math.pow(1 - i / length, 2);
+        channelData[i] = (Math.random() * 2 - 1) * decay;
+      }
+    }
+    
+    convolver.buffer = impulse;
+    return convolver;
+  }
+
+  /**
+   * Create dynamic range compressor
+   */
+  createCompressor(settings: {
+    threshold?: number;
+    knee?: number;
+    ratio?: number;
+    attack?: number;
+    release?: number;
+  } = {}): DynamicsCompressorNode {
+    const compressor = this.audioContext.createDynamicsCompressor();
+    
+    compressor.threshold.setValueAtTime(settings.threshold || -24, this.audioContext.currentTime);
+    compressor.knee.setValueAtTime(settings.knee || 30, this.audioContext.currentTime);
+    compressor.ratio.setValueAtTime(settings.ratio || 12, this.audioContext.currentTime);
+    compressor.attack.setValueAtTime(settings.attack || 0.003, this.audioContext.currentTime);
+    compressor.release.setValueAtTime(settings.release || 0.25, this.audioContext.currentTime);
+    
+    return compressor;
+  }
+
+  /**
+   * Create EQ filter
+   */
+  createEQ(frequency: number, gain: number, q: number = 1): BiquadFilterNode {
+    const filter = this.audioContext.createBiquadFilter();
+    filter.type = 'peaking';
+    filter.frequency.setValueAtTime(frequency, this.audioContext.currentTime);
+    filter.gain.setValueAtTime(gain, this.audioContext.currentTime);
+    filter.Q.setValueAtTime(q, this.audioContext.currentTime);
+    return filter;
+  }
+
+  /**
+   * Create spatial panner for multichannel output
+   */
+  createSpatialPanner(x: number, y: number, z: number): PannerNode {
+    const panner = this.audioContext.createPanner();
+    panner.panningModel = 'HRTF';
+    panner.distanceModel = 'inverse';
+    panner.refDistance = 1;
+    panner.maxDistance = 10000;
+    panner.rolloffFactor = 1;
+    panner.coneInnerAngle = 360;
+    panner.coneOuterAngle = 0;
+    panner.coneOuterGain = 0;
+    
+    panner.setPosition(x, y, z);
+    return panner;
+  }
+
+  /**
+   * Build complete effects chain
+   */
+  buildEffectsChain(config: {
+    enableReverb?: boolean;
+    reverbType?: 'hall' | 'cathedral' | 'studio' | 'plate';
+    enableCompression?: boolean;
+    compressionSettings?: any;
+    enableEQ?: boolean;
+    eqBands?: Array<{ freq: number; gain: number; q?: number }>;
+    spatialPosition?: { x: number; y: number; z: number };
+  }) {
+    this.effectsChain = [];
+    let currentNode: AudioNode = this.audioContext.destination;
+
+    // Build chain in reverse order (destination first)
+    if (config.spatialPosition) {
+      const panner = this.createSpatialPanner(
+        config.spatialPosition.x,
+        config.spatialPosition.y,
+        config.spatialPosition.z
+      );
+      panner.connect(currentNode);
+      currentNode = panner;
+      this.effectsChain.unshift(panner);
+    }
+
+    if (config.enableReverb) {
+      const reverb = this.createReverbEffect(config.reverbType || 'hall');
+      const dryGain = this.audioContext.createGain();
+      const wetGain = this.audioContext.createGain();
+      const merger = this.audioContext.createChannelMerger(2);
+      
+      dryGain.gain.setValueAtTime(0.7, this.audioContext.currentTime);
+      wetGain.gain.setValueAtTime(0.3, this.audioContext.currentTime);
+      
+      dryGain.connect(merger);
+      wetGain.connect(reverb);
+      reverb.connect(merger);
+      merger.connect(currentNode);
+      
+      currentNode = dryGain; // Input connects to dry path
+      this.effectsChain.unshift(dryGain, wetGain, reverb, merger);
+    }
+
+    if (config.enableCompression) {
+      const compressor = this.createCompressor(config.compressionSettings);
+      compressor.connect(currentNode);
+      currentNode = compressor;
+      this.effectsChain.unshift(compressor);
+    }
+
+    if (config.enableEQ && config.eqBands) {
+      for (const band of config.eqBands.reverse()) {
+        const eq = this.createEQ(band.freq, band.gain, band.q);
+        eq.connect(currentNode);
+        currentNode = eq;
+        this.effectsChain.unshift(eq);
+      }
+    }
+
+    return currentNode; // Return the input node of the chain
+  }
+
+  disconnect() {
+    this.effectsChain.forEach(node => {
+      try {
+        node.disconnect();
+      } catch (e) {
+        // Node might already be disconnected
+      }
+    });
+    this.effectsChain = [];
+  }
+}

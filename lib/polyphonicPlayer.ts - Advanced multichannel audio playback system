@@ -1,0 +1,449 @@
+
+export interface AudioChannel {
+  id: string;
+  name: string;
+  outputDevice?: string;
+  spatialPosition?: { x: number; y: number; z: number };
+  effects: {
+    reverb?: { type: 'hall' | 'cathedral' | 'studio' | 'plate'; wetness: number };
+    compression?: { threshold: number; ratio: number; attack: number; release: number };
+    eq?: Array<{ freq: number; gain: number; q: number }>;
+    delay?: { time: number; feedback: number; wetness: number };
+  };
+  volume: number;
+  muted: boolean;
+}
+
+export interface PlaybackSequence {
+  id: string;
+  name: string;
+  mode: 'simultaneous' | 'sequential' | 'staggered' | 'call_and_response';
+  channels: AudioChannel[];
+  recordings: Array<{
+    recordingId: string;
+    channelId: string;
+    startOffset: number; // milliseconds
+    duration?: number;
+    fadeIn?: number;
+    fadeOut?: number;
+  }>;
+  globalEffects?: {
+    masterCompression?: boolean;
+    spatialAmbience?: boolean;
+    crossChannelReverb?: boolean;
+  };
+}
+
+export class PolyphonicAudioPlayer {
+  private audioContext: AudioContext;
+  private channels: Map<string, AudioChannel> = new Map();
+  private activePlaybacks: Map<string, {
+    source: AudioBufferSourceNode;
+    gainNode: GainNode;
+    effectsChain: AudioNode[];
+  }> = new Map();
+  private masterGain: GainNode;
+  private analyser: AnalyserNode;
+  private isPlaying: boolean = false;
+
+  constructor() {
+    this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    this.masterGain = this.audioContext.createGain();
+    this.analyser = this.audioContext.createAnalyser();
+    
+    this.masterGain.connect(this.analyser);
+    this.analyser.connect(this.audioContext.destination);
+  }
+
+  /**
+   * Setup audio channels for multichannel output
+   */
+  async setupChannels(channels: AudioChannel[]) {
+    this.channels.clear();
+    
+    for (const channel of channels) {
+      this.channels.set(channel.id, channel);
+    }
+  }
+
+  /**
+   * Load and decode audio file
+   */
+  async loadAudio(url: string): Promise<AudioBuffer> {
+    const response = await fetch(url);
+    const arrayBuffer = await response.arrayBuffer();
+    return await this.audioContext.decodeAudioData(arrayBuffer);
+  }
+
+  /**
+   * Create effects chain for a channel
+   */
+  private createChannelEffectsChain(channel: AudioChannel): AudioNode {
+    let currentNode: AudioNode = this.masterGain;
+    const effectsChain: AudioNode[] = [];
+
+    // Spatial positioning
+    if (channel.spatialPosition) {
+      const panner = this.audioContext.createPanner();
+      panner.panningModel = 'HRTF';
+      panner.setPosition(
+        channel.spatialPosition.x,
+        channel.spatialPosition.y,
+        channel.spatialPosition.z
+      );
+      panner.connect(currentNode);
+      currentNode = panner;
+      effectsChain.push(panner);
+    }
+
+    // Reverb
+    if (channel.effects.reverb) {
+      const convolver = this.audioContext.createConvolver();
+      const dryGain = this.audioContext.createGain();
+      const wetGain = this.audioContext.createGain();
+      const merger = this.audioContext.createChannelMerger(2);
+      
+      const wetness = channel.effects.reverb.wetness;
+      dryGain.gain.setValueAtTime(1 - wetness, this.audioContext.currentTime);
+      wetGain.gain.setValueAtTime(wetness, this.audioContext.currentTime);
+      
+      // Create impulse response (simplified)
+      const length = this.audioContext.sampleRate * 2;
+      const impulse = this.audioContext.createBuffer(2, length, this.audioContext.sampleRate);
+      
+      for (let channel = 0; channel < 2; channel++) {
+        const channelData = impulse.getChannelData(channel);
+        for (let i = 0; i < length; i++) {
+          const decay = Math.pow(1 - i / length, 2);
+          channelData[i] = (Math.random() * 2 - 1) * decay;
+        }
+      }
+      convolver.buffer = impulse;
+      
+      dryGain.connect(merger);
+      wetGain.connect(convolver);
+      convolver.connect(merger);
+      merger.connect(currentNode);
+      
+      currentNode = dryGain;
+      effectsChain.push(dryGain, wetGain, convolver, merger);
+    }
+
+    // Compression
+    if (channel.effects.compression) {
+      const compressor = this.audioContext.createDynamicsCompressor();
+      const comp = channel.effects.compression;
+      
+      compressor.threshold.setValueAtTime(comp.threshold, this.audioContext.currentTime);
+      compressor.ratio.setValueAtTime(comp.ratio, this.audioContext.currentTime);
+      compressor.attack.setValueAtTime(comp.attack, this.audioContext.currentTime);
+      compressor.release.setValueAtTime(comp.release, this.audioContext.currentTime);
+      
+      compressor.connect(currentNode);
+      currentNode = compressor;
+      effectsChain.push(compressor);
+    }
+
+    // EQ
+    if (channel.effects.eq) {
+      for (const band of channel.effects.eq.reverse()) {
+        const filter = this.audioContext.createBiquadFilter();
+        filter.type = 'peaking';
+        filter.frequency.setValueAtTime(band.freq, this.audioContext.currentTime);
+        filter.gain.setValueAtTime(band.gain, this.audioContext.currentTime);
+        filter.Q.setValueAtTime(band.q, this.audioContext.currentTime);
+        
+        filter.connect(currentNode);
+        currentNode = filter;
+        effectsChain.push(filter);
+      }
+    }
+
+    // Channel volume and mute
+    const channelGain = this.audioContext.createGain();
+    channelGain.gain.setValueAtTime(
+      channel.muted ? 0 : channel.volume,
+      this.audioContext.currentTime
+    );
+    channelGain.connect(currentNode);
+    effectsChain.push(channelGain);
+
+    return channelGain;
+  }
+
+  /**
+   * Play a single recording on a specific channel
+   */
+  async playRecordingOnChannel(
+    recordingId: string,
+    channelId: string,
+    audioBuffer: AudioBuffer,
+    options: {
+      startOffset?: number;
+      duration?: number;
+      fadeIn?: number;
+      fadeOut?: number;
+    } = {}
+  ) {
+    const channel = this.channels.get(channelId);
+    if (!channel) {
+      throw new Error(`Channel ${channelId} not found`);
+    }
+
+    // Create audio source
+    const source = this.audioContext.createBufferSource();
+    source.buffer = audioBuffer;
+
+    // Create gain node for individual recording control
+    const recordingGain = this.audioContext.createGain();
+    
+    // Setup effects chain
+    const effectsChainInput = this.createChannelEffectsChain(channel);
+    
+    // Connect: source -> recordingGain -> effectsChain -> output
+    source.connect(recordingGain);
+    recordingGain.connect(effectsChainInput);
+
+    // Handle fade in/out
+    const now = this.audioContext.currentTime;
+    const startTime = now + (options.startOffset || 0) / 1000;
+    
+    if (options.fadeIn) {
+      recordingGain.gain.setValueAtTime(0, startTime);
+      recordingGain.gain.linearRampToValueAtTime(1, startTime + options.fadeIn / 1000);
+    } else {
+      recordingGain.gain.setValueAtTime(1, startTime);
+    }
+
+    if (options.fadeOut && options.duration) {
+      const fadeStartTime = startTime + (options.duration - options.fadeOut) / 1000;
+      recordingGain.gain.setValueAtTime(1, fadeStartTime);
+      recordingGain.gain.linearRampToValueAtTime(0, fadeStartTime + options.fadeOut / 1000);
+    }
+
+    // Store playback info
+    this.activePlaybacks.set(recordingId, {
+      source,
+      gainNode: recordingGain,
+      effectsChain: []
+    });
+
+    // Start playback
+    source.start(startTime, 0, options.duration ? options.duration / 1000 : undefined);
+    
+    // Cleanup when finished
+    source.onended = () => {
+      this.activePlaybacks.delete(recordingId);
+    };
+
+    return {
+      stop: () => {
+        source.stop();
+        this.activePlaybacks.delete(recordingId);
+      },
+      adjustVolume: (volume: number) => {
+        recordingGain.gain.setValueAtTime(volume, this.audioContext.currentTime);
+      }
+    };
+  }
+
+  /**
+   * Execute a complete playback sequence
+   */
+  async executeSequence(sequence: PlaybackSequence) {
+    if (this.isPlaying) {
+      this.stop();
+    }
+
+    this.isPlaying = true;
+    
+    // Setup channels
+    await this.setupChannels(sequence.channels);
+
+    // Load all required audio files
+    const audioBuffers = new Map<string, AudioBuffer>();
+    const uniqueRecordings = [...new Set(sequence.recordings.map(r => r.recordingId))];
+    
+    for (const recordingId of uniqueRecordings) {
+      try {
+        const buffer = await this.loadAudio(`/api/recordings/${recordingId}/audio`);
+        audioBuffers.set(recordingId, buffer);
+      } catch (error) {
+        console.error(`Failed to load recording ${recordingId}:`, error);
+      }
+    }
+
+    // Execute playback based on mode
+    switch (sequence.mode) {
+      case 'simultaneous':
+        await this.executeSimultaneous(sequence, audioBuffers);
+        break;
+      case 'sequential':
+        await this.executeSequential(sequence, audioBuffers);
+        break;
+      case 'staggered':
+        await this.executeStaggered(sequence, audioBuffers);
+        break;
+      case 'call_and_response':
+        await this.executeCallAndResponse(sequence, audioBuffers);
+        break;
+    }
+  }
+
+  private async executeSimultaneous(
+    sequence: PlaybackSequence,
+    audioBuffers: Map<string, AudioBuffer>
+  ) {
+    // Start all recordings at the same time
+    for (const recording of sequence.recordings) {
+      const buffer = audioBuffers.get(recording.recordingId);
+      if (buffer) {
+        await this.playRecordingOnChannel(
+          recording.recordingId,
+          recording.channelId,
+          buffer,
+          {
+            startOffset: recording.startOffset,
+            duration: recording.duration,
+            fadeIn: recording.fadeIn,
+            fadeOut: recording.fadeOut
+          }
+        );
+      }
+    }
+  }
+
+  private async executeSequential(
+    sequence: PlaybackSequence,
+    audioBuffers: Map<string, AudioBuffer>
+  ) {
+    // Play recordings one after another
+    let currentOffset = 0;
+    
+    for (const recording of sequence.recordings) {
+      const buffer = audioBuffers.get(recording.recordingId);
+      if (buffer) {
+        await this.playRecordingOnChannel(
+          recording.recordingId,
+          recording.channelId,
+          buffer,
+          {
+            startOffset: currentOffset + recording.startOffset,
+            duration: recording.duration,
+            fadeIn: recording.fadeIn,
+            fadeOut: recording.fadeOut
+          }
+        );
+        
+        currentOffset += (recording.duration || buffer.duration * 1000) + 1000; // 1s gap
+      }
+    }
+  }
+
+  private async executeStaggered(
+    sequence: PlaybackSequence,
+    audioBuffers: Map<string, AudioBuffer>
+  ) {
+    // Start recordings with increasing delays
+    let staggerDelay = 0;
+    const staggerInterval = 5000; // 5 seconds between starts
+    
+    for (const recording of sequence.recordings) {
+      const buffer = audioBuffers.get(recording.recordingId);
+      if (buffer) {
+        await this.playRecordingOnChannel(
+          recording.recordingId,
+          recording.channelId,
+          buffer,
+          {
+            startOffset: staggerDelay + recording.startOffset,
+            duration: recording.duration,
+            fadeIn: recording.fadeIn,
+            fadeOut: recording.fadeOut
+          }
+        );
+        
+        staggerDelay += staggerInterval;
+      }
+    }
+  }
+
+  private async executeCallAndResponse(
+    sequence: PlaybackSequence,
+    audioBuffers: Map<string, AudioBuffer>
+  ) {
+    // Alternate between channels with gaps for "response"
+    let currentOffset = 0;
+    const responseGap = 3000; // 3 seconds for response
+    
+    for (let i = 0; i < sequence.recordings.length; i++) {
+      const recording = sequence.recordings[i];
+      const buffer = audioBuffers.get(recording.recordingId);
+      
+      if (buffer) {
+        await this.playRecordingOnChannel(
+          recording.recordingId,
+          recording.channelId,
+          buffer,
+          {
+            startOffset: currentOffset + recording.startOffset,
+            duration: recording.duration,
+            fadeIn: recording.fadeIn,
+            fadeOut: recording.fadeOut
+          }
+        );
+        
+        currentOffset += (recording.duration || buffer.duration * 1000) + responseGap;
+      }
+    }
+  }
+
+  /**
+   * Stop all playback
+   */
+  stop() {
+    for (const [recordingId, playback] of this.activePlaybacks) {
+      try {
+        playback.source.stop();
+      } catch (e) {
+        // Source might already be stopped
+      }
+    }
+    this.activePlaybacks.clear();
+    this.isPlaying = false;
+  }
+
+  /**
+   * Get current audio levels for visualization
+   */
+  getAudioLevels(): { left: number; right: number; peak: number } {
+    const bufferLength = this.analyser.frequencyBinCount;
+    const dataArray = new Uint8Array(bufferLength);
+    this.analyser.getByteFrequencyData(dataArray);
+    
+    const average = dataArray.reduce((a, b) => a + b) / bufferLength;
+    const peak = Math.max(...dataArray);
+    
+    return {
+      left: average / 255,
+      right: average / 255, // Simplified - you'd separate channels in practice
+      peak: peak / 255
+    };
+  }
+
+  /**
+   * Update channel settings in real-time
+   */
+  updateChannel(channelId: string, updates: Partial<AudioChannel>) {
+    const channel = this.channels.get(channelId);
+    if (channel) {
+      Object.assign(channel, updates);
+      this.channels.set(channelId, channel);
+    }
+  }
+
+  disconnect() {
+    this.stop();
+    this.audioContext.close();
+  }
+}
