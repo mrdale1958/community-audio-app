@@ -89,7 +89,7 @@ export default function ObservePage() {
     return (
       <Box sx={{ p: 3 }}>
         <Typography variant="h4" gutterBottom>
-          Memorial Project Progress
+          Call My Name Project Progress
         </Typography>
         <LinearProgress />
         <Typography variant="body2" sx={{ mt: 1 }}>
@@ -103,7 +103,7 @@ export default function ObservePage() {
     return (
       <Box sx={{ p: 3 }}>
         <Typography variant="h4" gutterBottom>
-          Memorial Project Progress
+          Call My Name Project Progress
         </Typography>
         <Alert severity="error">
           {error}
@@ -116,7 +116,7 @@ export default function ObservePage() {
     return (
       <Box sx={{ p: 3 }}>
         <Typography variant="h4" gutterBottom>
-          Memorial Project Progress
+          Call My Name Project Progress
         </Typography>
         <Alert severity="info">
           No statistics available. Please check that the database is set up correctly.

@@ -390,7 +390,7 @@ export default function PlaybackPage() {
       </Typography>
       
       <Typography variant="body1" color="text.secondary" textAlign="center" sx={{ mb: 4 }}>
-        Listen to recordings from community members reading memorial names
+        Listen to recordings from community members reading Call My Name Project names
       </Typography>
 
       {error && (

@@ -9,7 +9,7 @@ async function main() {
   // Create sample name lists
   const sampleNameLists = [
     {
-      title: 'Memorial Wall - Section A',
+      title: 'Call My Name Project Wall - Section A',
       names: [
         'John Smith', 'Mary Johnson', 'Robert Williams', 'Patricia Brown',
         'Michael Davis', 'Linda Miller', 'William Wilson', 'Elizabeth Moore',
@@ -19,7 +19,7 @@ async function main() {
       pageNumber: 1
     },
     {
-      title: 'Memorial Wall - Section B', 
+      title: 'Call My Name Project Wall - Section B', 
       names: [
         'Christopher Garcia', 'Karen Martinez', 'Daniel Robinson', 'Nancy Clark',
         'Matthew Rodriguez', 'Lisa Lewis', 'Anthony Lee', 'Betty Walker',

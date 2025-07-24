@@ -1,358 +1,357 @@
-'use client'
+// app/dashboard/page.tsx - Updated with dynamic progress calculation
 
-import { useSession } from 'next-auth/react'
-import { useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+'use client';
+
+import { useSession } from 'next-auth/react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import {
-  Container,
-  Typography,
   Box,
+  Typography,
   Card,
   CardContent,
-  Grid,
   Button,
-  Alert,
+  Grid,
+  LinearProgress,
   Chip,
-  Avatar,
-  Divider,
-  Paper
-} from '@mui/material'
+  Alert,
+  CircularProgress,
+} from '@mui/material';
 import {
   Mic,
   Upload,
-  PlayArrow,
+  BarChart,
   Person,
-  Analytics,
-  History,
-  TrendingUp
-} from '@mui/icons-material'
-import Link from 'next/link'
+  Assignment,
+} from '@mui/icons-material';
 
 interface DashboardStats {
-  totalRecordings: number
-  approvedRecordings: number
-  pendingRecordings: number
-  totalDuration: number
+  totalNames: number;
+  totalRecordings: number;
+  approvedRecordings: number;
+  pagesWithRecordings: number;
+  totalPages: number;
+  completionPercentage: number;
+  remainingNames: number;
 }
 
 export default function DashboardPage() {
-  const { data: session, status } = useSession()
-  const router = useRouter()
-  const [stats, setStats] = useState<DashboardStats | null>(null)
-  const [recentRecordings, setRecentRecordings] = useState([])
-  const [loading, setLoading] = useState(true)
+  const { data: session, status } = useSession();
+  const router = useRouter();
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Redirect if not authenticated or insufficient role
+  // Fetch dashboard statistics
   useEffect(() => {
-    if (status === 'unauthenticated') {
-      router.push('/auth/signin')
-    } else if (status === 'authenticated' && session?.user?.role === 'OBSERVER') {
-      router.push('/observe')
-    }
-  }, [status, session?.user?.role, router])
+    async function fetchStats() {
+      try {
+        setLoading(true);
+        setError(null);
 
-  // Load user stats and recent recordings
-  useEffect(() => {
-    const loadDashboardData = async () => {
-      if (status === 'authenticated' && (session?.user?.role === 'CONTRIBUTOR' || session?.user?.role === 'MANAGER' || session?.user?.role === 'ADMIN')) {
-        try {
-          // Load user recordings stats
-          const response = await fetch('/api/recordings')
-          if (response.ok) {
-            const data = await response.json()
-            const recordings = Array.isArray(data) ? data : (data.recordings || [])
-            
-            const stats: DashboardStats = {
-              totalRecordings: recordings.length,
-              approvedRecordings: recordings.filter((r: any) => r.status === 'APPROVED').length,
-              pendingRecordings: recordings.filter((r: any) => r.status === 'PENDING').length,
-              totalDuration: recordings.reduce((acc: number, r: any) => acc + (r.duration || 0), 0)
-            }
-            
-            setStats(stats)
-            setRecentRecordings(recordings.slice(0, 5)) // Show 5 most recent
-          }
-        } catch (error) {
-          console.error('Failed to load dashboard data:', error)
-        } finally {
-          setLoading(false)
+        const response = await fetch('/api/stats');
+        if (!response.ok) {
+          throw new Error('Failed to fetch statistics');
         }
-      } else {
-        setLoading(false)
+
+        const data = await response.json();
+        
+        if (data.success) {
+          setStats(data.data);
+        } else {
+          throw new Error(data.error || 'Failed to load statistics');
+        }
+      } catch (err) {
+        console.error('Error fetching stats:', err);
+        setError(err instanceof Error ? err.message : 'Failed to load statistics');
+      } finally {
+        setLoading(false);
       }
     }
 
-    loadDashboardData()
-  }, [status, session?.user?.role])
+    if (status === 'authenticated') {
+      fetchStats();
+      
+      // Refresh stats every 2 minutes
+      const interval = setInterval(fetchStats, 120000);
+      return () => clearInterval(interval);
+    }
+  }, [status]);
 
   if (status === 'loading') {
     return (
-      <Container maxWidth="lg" sx={{ py: 4 }}>
-        <Box sx={{ textAlign: 'center' }}>
-          <Typography>Loading...</Typography>
-        </Box>
-      </Container>
-    )
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
+        <CircularProgress />
+      </Box>
+    );
   }
 
   if (status === 'unauthenticated') {
-    return null // Will redirect
+    router.push('/auth/signin');
+    return null;
   }
 
-  if (status === 'authenticated' && session?.user?.role === 'OBSERVER') {
-    return null // Will redirect to observe
-  }
-
-  const formatDuration = (seconds: number) => {
-    const mins = Math.floor(seconds / 60)
-    const secs = seconds % 60
-    return `${mins}:${secs.toString().padStart(2, '0')}`
-  }
-
-  const getRoleColor = (role: string) => {
-    switch (role) {
-      case 'ADMIN': return 'error'
-      case 'MANAGER': return 'warning'
-      case 'CONTRIBUTOR': return 'primary'
-      case 'OBSERVER': return 'info'
-      default: return 'default'
-    }
-  }
+  const userRole = session?.user?.role || 'CONTRIBUTOR';
 
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
+    <Box sx={{ p: 3 }}>
       {/* Welcome Header */}
       <Box sx={{ mb: 4 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-          <Avatar sx={{ mr: 2, bgcolor: 'primary.main' }}>
-            <Person />
-          </Avatar>
-          <Box>
-            <Typography variant="h4" component="h1">
-              Welcome back, {session?.user?.name}!
-            </Typography>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1 }}>
-              <Chip 
-                label={session?.user?.role || 'USER'} 
-                size="small" 
-                color={getRoleColor(session?.user?.role || '')}
-              />
-              <Typography variant="body2" color="text.secondary">
-                {session?.user?.email}
-              </Typography>
-            </Box>
-          </Box>
-        </Box>
+        <Typography variant="h4" gutterBottom>
+          Welcome back, {session?.user?.name}
+        </Typography>
+        <Typography variant="body1" color="text.secondary">
+          {userRole === 'CONTRIBUTOR' && 'Ready to contribute to the Call My Name Project?'}
+          {userRole === 'MANAGER' && 'Review recordings and manage project progress.'}
+          {userRole === 'ADMIN' && 'Full system access - manage users and project settings.'}
+          {userRole === 'OBSERVER' && 'Monitor project progress and statistics.'}
+        </Typography>
       </Box>
 
-      {/* Quick Actions */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ textAlign: 'center', '&:hover': { boxShadow: 4 } }}>
+      {/* Project Progress Card */}
+      {loading ? (
+        <Card sx={{ mb: 3 }}>
+          <CardContent>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', py: 4 }}>
+              <CircularProgress size={24} sx={{ mr: 2 }} />
+              <Typography>Loading project statistics...</Typography>
+            </Box>
+          </CardContent>
+        </Card>
+      ) : error ? (
+        <Alert severity="error" sx={{ mb: 3 }}>
+          {error}
+        </Alert>
+      ) : stats ? (
+        <Card sx={{ mb: 3, background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white' }}>
+          <CardContent>
+            <Typography variant="h6" gutterBottom>
+              Call My Name Project Progress
+            </Typography>
+            
+            <Box sx={{ mb: 2 }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                <Typography variant="body2">
+                  {stats.approvedRecordings.toLocaleString()} of {stats.totalNames.toLocaleString()} names recorded
+                </Typography>
+                <Typography variant="body2">
+                  {stats.completionPercentage.toFixed(1)}%
+                </Typography>
+              </Box>
+              <LinearProgress 
+                variant="determinate" 
+                value={stats.completionPercentage}
+                sx={{ 
+                  height: 8, 
+                  borderRadius: 4,
+                  backgroundColor: 'rgba(255,255,255,0.3)',
+                  '& .MuiLinearProgress-bar': {
+                    backgroundColor: 'rgba(255,255,255,0.8)'
+                  }
+                }}
+              />
+            </Box>
+
+            <Grid container spacing={2}>
+              <Grid item xs={6} sm={3}>
+                <Box textAlign="center">
+                  <Typography variant="h6">{stats.totalNames.toLocaleString()}</Typography>
+                  <Typography variant="caption">Total Names</Typography>
+                </Box>
+              </Grid>
+              <Grid item xs={6} sm={3}>
+                <Box textAlign="center">
+                  <Typography variant="h6">{stats.approvedRecordings.toLocaleString()}</Typography>
+                  <Typography variant="caption">Recorded</Typography>
+                </Box>
+              </Grid>
+              <Grid item xs={6} sm={3}>
+                <Box textAlign="center">
+                  <Typography variant="h6">{stats.totalPages.toLocaleString()}</Typography>
+                  <Typography variant="caption">Total Pages</Typography>
+                </Box>
+              </Grid>
+              <Grid item xs={6} sm={3}>
+                <Box textAlign="center">
+                  <Typography variant="h6">{stats.remainingNames.toLocaleString()}</Typography>
+                  <Typography variant="caption">Remaining</Typography>
+                </Box>
+              </Grid>
+            </Grid>
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {/* Action Cards */}
+      <Grid container spacing={3}>
+        {/* Recording Actions - All users can contribute */}
+        <Grid item xs={12} md={6}>
+          <Card>
             <CardContent>
-              <Mic sx={{ fontSize: 40, color: 'primary.main', mb: 1 }} />
-              <Typography variant="h6" gutterBottom>
-                Live Recording
+              <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
+                <Mic sx={{ mr: 1 }} />
+                Record Names
               </Typography>
-              <Button 
-                component={Link} 
-                href="/contribute/live" 
-                variant="contained" 
-                fullWidth
-                size="small"
+              <Typography variant="body2" color="text.secondary" paragraph>
+                Contribute to the Call My Name Project by recording names live through your browser.
+              </Typography>
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={() => router.push('/contribute/live')}
+                sx={{ mr: 1, mb: 1 }}
               >
                 Start Recording
               </Button>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ textAlign: 'center', '&:hover': { boxShadow: 4 } }}>
-            <CardContent>
-              <Upload sx={{ fontSize: 40, color: 'secondary.main', mb: 1 }} />
-              <Typography variant="h6" gutterBottom>
-                Upload Recording
-              </Typography>
-              <Button 
-                component={Link} 
-                href="/contribute/offline" 
-                variant="outlined" 
-                fullWidth
-                size="small"
-              >
-                Upload File
-              </Button>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ textAlign: 'center', '&:hover': { boxShadow: 4 } }}>
-            <CardContent>
-              <History sx={{ fontSize: 40, color: 'info.main', mb: 1 }} />
-              <Typography variant="h6" gutterBottom>
-                My Recordings
-              </Typography>
-              <Button 
-                component={Link} 
-                href="/dashboard/recordings" 
-                variant="outlined" 
-                fullWidth
-                size="small"
-              >
-                View All
-              </Button>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ textAlign: 'center', '&:hover': { boxShadow: 4 } }}>
-            <CardContent>
-              <PlayArrow sx={{ fontSize: 40, color: 'success.main', mb: 1 }} />
-              <Typography variant="h6" gutterBottom>
-                Listen
-              </Typography>
-              <Button 
-                component={Link} 
-                href="/playback" 
-                variant="outlined" 
-                fullWidth
-                size="small"
-              >
-                Play Recordings
-              </Button>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
-
-      {/* Stats Overview */}
-      {stats && (
-        <Grid container spacing={3} sx={{ mb: 4 }}>
-          <Grid item xs={12}>
-            <Paper sx={{ p: 2 }}>
-              <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
-                <Analytics sx={{ mr: 1 }} />
-                Your Contribution Stats
-              </Typography>
-              <Grid container spacing={2}>
-                <Grid item xs={6} sm={3}>
-                  <Box sx={{ textAlign: 'center' }}>
-                    <Typography variant="h3" color="primary.main">
-                      {stats.totalRecordings}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Total Recordings
-                    </Typography>
-                  </Box>
-                </Grid>
-                <Grid item xs={6} sm={3}>
-                  <Box sx={{ textAlign: 'center' }}>
-                    <Typography variant="h3" color="success.main">
-                      {stats.approvedRecordings}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Approved
-                    </Typography>
-                  </Box>
-                </Grid>
-                <Grid item xs={6} sm={3}>
-                  <Box sx={{ textAlign: 'center' }}>
-                    <Typography variant="h3" color="warning.main">
-                      {stats.pendingRecordings}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Pending Review
-                    </Typography>
-                  </Box>
-                </Grid>
-                <Grid item xs={6} sm={3}>
-                  <Box sx={{ textAlign: 'center' }}>
-                    <Typography variant="h3" color="info.main">
-                      {formatDuration(stats.totalDuration)}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Total Duration
-                    </Typography>
-                  </Box>
-                </Grid>
-              </Grid>
-            </Paper>
-          </Grid>
-        </Grid>
-      )}
-
-      {/* Recent Activity */}
-      <Grid container spacing={3}>
-        <Grid item xs={12} md={8}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Recent Recordings
-              </Typography>
-              {loading ? (
-                <Typography color="text.secondary">Loading...</Typography>
-              ) : recentRecordings.length === 0 ? (
-                <Alert severity="info">
-                  No recordings yet. Start by making your first recording!
-                </Alert>
-              ) : (
-                <Box>
-                  {recentRecordings.map((recording: any, index) => (
-                    <Box key={recording.id}>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 1 }}>
-                        <Box>
-                          <Typography variant="body1">
-                            {recording.originalName || recording.filename}
-                          </Typography>
-                          <Typography variant="body2" color="text.secondary">
-                            {recording.nameList?.title} • {formatDuration(recording.duration || 0)}
-                          </Typography>
-                        </Box>
-                        <Chip 
-                          label={recording.status} 
-                          size="small" 
-                          color={recording.status === 'APPROVED' ? 'success' : 'warning'}
-                        />
-                      </Box>
-                      {index < recentRecordings.length - 1 && <Divider />}
-                    </Box>
-                  ))}
-                  <Box sx={{ mt: 2, textAlign: 'center' }}>
-                    <Button component={Link} href="/dashboard/recordings" variant="outlined" size="small">
-                      View All Recordings
-                    </Button>
-                  </Box>
-                </Box>
+              {stats && stats.remainingNames > 0 && (
+                <Chip 
+                  label={`${stats.remainingNames.toLocaleString()} names remaining`}
+                  size="small"
+                  color="info"
+                />
               )}
             </CardContent>
           </Card>
         </Grid>
 
-        <Grid item xs={12} md={4}>
+        <Grid item xs={12} md={6}>
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
-                <TrendingUp sx={{ mr: 1 }} />
-                Project Progress
+                <Upload sx={{ mr: 1 }} />
+                Upload Recordings
               </Typography>
-              <Box sx={{ textAlign: 'center', py: 2 }}>
-                <Typography variant="h2" color="primary.main">
-                  5000
+              <Typography variant="body2" color="text.secondary" paragraph>
+                Upload recordings you've made offline using downloaded name lists.
+              </Typography>
+              <Button
+                variant="contained"
+                color="secondary"
+                onClick={() => router.push('/contribute/offline')}
+              >
+                Upload Files
+              </Button>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Manager/Admin Actions */}
+        {['MANAGER', 'ADMIN'].includes(userRole) && (
+          <>
+            <Grid item xs={12} md={6}>
+              <Card>
+                <CardContent>
+                  <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
+                    <Assignment sx={{ mr: 1 }} />
+                    Review Recordings
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" paragraph>
+                    Review submitted recordings and manage approval status.
+                  </Typography>
+                  <Button
+                    variant="outlined"
+                    onClick={() => router.push('/admin/recordings')}
+                  >
+                    Review Queue
+                  </Button>
+                  {stats && stats.totalRecordings > stats.approvedRecordings && (
+                    <Chip 
+                      label={`${stats.totalRecordings - stats.approvedRecordings} pending`}
+                      size="small"
+                      color="warning"
+                      sx={{ ml: 1 }}
+                    />
+                  )}
+                </CardContent>
+              </Card>
+            </Grid>
+
+            <Grid item xs={12} md={6}>
+              <Card>
+                <CardContent>
+                  <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
+                    <BarChart sx={{ mr: 1 }} />
+                    Project Analytics
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" paragraph>
+                    View detailed project statistics and progress reports.
+                  </Typography>
+                  <Button
+                    variant="outlined"
+                    onClick={() => router.push('/admin/analytics')}
+                  >
+                    View Analytics
+                  </Button>
+                </CardContent>
+              </Card>
+            </Grid>
+          </>
+        )}
+
+        {/* Admin-only Actions */}
+        {userRole === 'ADMIN' && (
+          <Grid item xs={12} md={6}>
+            <Card>
+              <CardContent>
+                <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
+                  <Person sx={{ mr: 1 }} />
+                  User Management
                 </Typography>
-                <Typography variant="body2" color="text.secondary" gutterBottom>
-                  Target Recordings
+                <Typography variant="body2" color="text.secondary" paragraph>
+                  Manage user accounts, roles, and permissions.
                 </Typography>
-                <Typography variant="body1" sx={{ mt: 2 }}>
-                  Help us reach our goal of collecting 5,000 community recordings for the exhibition!
-                </Typography>
-              </Box>
+                <Button
+                  variant="outlined"
+                  onClick={() => router.push('/admin/users')}
+                >
+                  Manage Users
+                </Button>
+              </CardContent>
+            </Card>
+          </Grid>
+        )}
+
+        {/* Public Progress Link */}
+        <Grid item xs={12}>
+          <Card sx={{ bgcolor: 'grey.50' }}>
+            <CardContent>
+              <Typography variant="h6" gutterBottom>
+                Share Project Progress
+              </Typography>
+              <Typography variant="body2" color="text.secondary" paragraph>
+                View the public progress page that shows the Call My Name Project's current status.
+              </Typography>
+              <Button
+                variant="text"
+                onClick={() => router.push('/observe')}
+                sx={{ mr: 1 }}
+              >
+                View Public Progress
+              </Button>
+              <Button
+                variant="text"
+                onClick={() => {
+                  const url = `${window.location.origin}/observe`;
+                  navigator.clipboard.writeText(url);
+                  // Could add a toast notification here
+                }}
+              >
+                Copy Link
+              </Button>
             </CardContent>
           </Card>
         </Grid>
       </Grid>
-    </Container>
-  )
+
+      {/* Quick Stats Footer */}
+      {stats && (
+        <Box sx={{ mt: 4, textAlign: 'center' }}>
+          <Typography variant="body2" color="text.secondary">
+            Last updated: {new Date().toLocaleTimeString()} • 
+            {stats.totalPages} pages • {stats.pagesWithRecordings} with recordings
+          </Typography>
+        </Box>
+      )}
+    </Box>
+  );
 }
