@@ -1,91 +1,96 @@
-import { NextRequest, NextResponse } from 'next/server'
-import bcrypt from 'bcryptjs'
-import { prisma } from '@/lib/prisma'
-import { z } from 'zod'
+// app/api/auth/register/route.ts - Updated with case-insensitive email
 
-// Validation schema
-const registerSchema = z.object({
-  name: z.string().min(1, 'Name is required').max(100, 'Name too long'),
-  email: z.string().email('Invalid email format').toLowerCase(),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
-  role: z.enum(['CONTRIBUTOR', 'OBSERVER', 'MANAGER', 'ADMIN']).default('CONTRIBUTOR')
-})
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
+import bcrypt from 'bcrypt';
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
-    
-    // Validate input
-    const validatedData = registerSchema.parse(body)
-    const { name, email, password, role } = validatedData
+    const body = await request.json();
+    const { email, name, password } = body;
 
-    // Check if user already exists
+    // Validate required fields
+    if (!email || !name || !password) {
+      return NextResponse.json(
+        { error: 'Email, name, and password are required' },
+        { status: 400 }
+      );
+    }
+
+    // Normalize email to lowercase and trim whitespace
+    const normalizedEmail = email.toLowerCase().trim();
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(normalizedEmail)) {
+      return NextResponse.json(
+        { error: 'Invalid email format' },
+        { status: 400 }
+      );
+    }
+
+    // Validate password strength
+    if (password.length < 8) {
+      return NextResponse.json(
+        { error: 'Password must be at least 8 characters long' },
+        { status: 400 }
+      );
+    }
+
+    // Check if user already exists (case-insensitive)
     const existingUser = await prisma.user.findUnique({
-      where: { email }
-    })
+      where: {
+        email: normalizedEmail
+      }
+    });
 
     if (existingUser) {
       return NextResponse.json(
         { error: 'User with this email already exists' },
-        { status: 400 }
-      )
+        { status: 409 }
+      );
     }
 
     // Hash password
-    const hashedPassword = await bcrypt.hash(password, 12)
+    const hashedPassword = await bcrypt.hash(password, 12);
 
-    // Create user
+    // Create user with normalized email
     const user = await prisma.user.create({
       data: {
-        name,
-        email,
+        email: normalizedEmail, // Store normalized email
+        name: name.trim(),
         password: hashedPassword,
-        role: role as any, // Cast to handle string enum
+        role: 'CONTRIBUTOR', // Default role
       },
       select: {
         id: true,
-        name: true,
         email: true,
+        name: true,
         role: true,
-        createdAt: true
+        createdAt: true,
       }
-    })
+    });
 
-    return NextResponse.json(
-      { 
-        message: 'User created successfully',
-        user 
-      },
-      { status: 201 }
-    )
+    return NextResponse.json({
+      success: true,
+      message: 'User created successfully',
+      user: user
+    });
 
   } catch (error) {
-    console.error('Registration error:', error)
+    console.error('Registration error:', error);
 
-    // Handle validation errors
-    if (error instanceof z.ZodError) {
+    // Handle unique constraint violation (shouldn't happen with our check, but just in case)
+    if (error instanceof Error && error.message.includes('Unique constraint')) {
       return NextResponse.json(
-        { 
-          error: 'Validation failed',
-          details: error.errors.map(err => `${err.path.join('.')}: ${err.message}`)
-        },
-        { status: 400 }
-      )
-    }
-
-    // Handle Prisma errors
-    if (error && typeof error === 'object' && 'code' in error) {
-      if (error.code === 'P2002') {
-        return NextResponse.json(
-          { error: 'User with this email already exists' },
-          { status: 400 }
-        )
-      }
+        { error: 'User with this email already exists' },
+        { status: 409 }
+      );
     }
 
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
-    )
+    );
   }
 }

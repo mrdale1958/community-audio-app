@@ -1,5 +1,4 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
+// schema.prisma - Updated schema with enhanced page support
 
 generator client {
   provider = "prisma-client-js"
@@ -15,64 +14,124 @@ model User {
   email     String   @unique
   name      String
   password  String
-  role      String   // CONTRIBUTOR|MANAGER|OBSERVER|ADMIN
+  role      String   @default("CONTRIBUTOR") // CONTRIBUTOR|MANAGER|OBSERVER|ADMIN
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // Relations
   recordings Recording[]
+  nameLists  NameList[]
+  pageSeries PageSeries[]
 
   @@map("users")
 }
 
 model NameList {
-  id         String   @id @default(cuid())
-  title      String
-  names      String   // JSON array of names
-  pageNumber Int?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id          String  @id @default(cuid())
+  title       String
+  names       String // JSON array of names
+  pageNumber  Int // Page number for this list (required)
+  totalPages  Int? // Total pages in this series (optional)
+  namesCount  Int // Number of names in this page (required)
+  seriesId    String? // Optional grouping identifier for multi-page series
+  description String? // Optional description
+
+  // Metadata
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  createdBy String
+  user      User     @relation(fields: [createdBy], references: [id])
 
   // Relations
   recordings Recording[]
 
-  @@map("namelists")
+  // Indexes for efficient page-based queries
+  @@index([pageNumber])
+  @@index([seriesId, pageNumber])
+  @@index([createdBy, pageNumber])
+  @@map("name_lists")
 }
 
 model Recording {
-  id          String   @id @default(cuid())
-  filename    String
-  originalName String?
-  fileSize    Int
-  duration    Int?     // in seconds
-  mimeType    String
-  status      String   @default("PENDING") // PENDING|APPROVED|REJECTED
-  method      String   // LIVE|UPLOAD
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id           String @id @default(cuid())
+  filename     String
+  originalName String
+  filePath     String
+  fileSize     Int
+  mimeType     String
+  duration     Float? // Duration in seconds
+
+  // Page/List reference
+  nameListId String
+  nameList   NameList @relation(fields: [nameListId], references: [id])
+  pageNumber Int // Denormalized for easier queries
+
+  // User reference
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  // Recording method and status
+  method String // LIVE|UPLOAD
+  status String @default("PENDING") // PENDING|APPROVED|REJECTED|ARCHIVED
+
+  // Quality metrics (optional)
+  audioQuality String? // EXCELLENT|GOOD|FAIR|POOR
+  notes        String? // Admin notes or feedback
+
+  // Exhibition
+  isQueued   Boolean   @default(false)
+  playCount  Int       @default(0)
+  lastPlayed DateTime?
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
-  userId     String
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  nameListId String
-  nameList   NameList @relation(fields: [nameListId], references: [id], onDelete: Cascade)
-
-  // Exhibition queue
   exhibitionQueue ExhibitionQueue[]
 
+  // Indexes for efficient queries
+  @@index([pageNumber])
+  @@index([status, pageNumber])
+  @@index([userId, pageNumber])
+  @@index([nameListId])
+  @@index([isQueued])
   @@map("recordings")
 }
 
 model ExhibitionQueue {
-  id        String   @id @default(cuid())
-  position  Int
-  playedAt  DateTime?
-  createdAt DateTime @default(now())
+  id           String    @id @default(cuid())
+  recordingId  String
+  recording    Recording @relation(fields: [recordingId], references: [id])
+  position     Int // Queue position
+  isActive     Boolean   @default(true)
+  scheduledFor DateTime?
+  playedAt     DateTime?
+  createdAt    DateTime  @default(now())
 
-  // Relations
-  recordingId String
-  recording   Recording @relation(fields: [recordingId], references: [id], onDelete: Cascade)
-
-  @@unique([position])
+  @@unique([recordingId])
+  @@index([position])
+  @@index([isActive, position])
   @@map("exhibition_queue")
+}
+
+// Optional: Page series metadata for multi-page collections
+model PageSeries {
+  id           String  @id @default(cuid())
+  title        String
+  description  String?
+  totalPages   Int
+  namesPerPage Int     @default(50) // Can override global config
+
+  // Status tracking
+  completedPages     Int @default(0)
+  totalRecordings    Int @default(0)
+  approvedRecordings Int @default(0)
+
+  // Metadata
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  createdBy String
+  user      User     @relation(fields: [createdBy], references: [id])
+
+  @@map("page_series")
 }

@@ -99,245 +99,501 @@ Streamline management of multiple recordings:
 - **Advanced filtering** - Complex queries across multiple fields
 - **Bulk edit metadata** - Update multiple recordings simultaneously
 
-## 🌐 Deployment to AWS
+## 🌐 Deployment to AWS Lightsail
 
-### Recommended AWS Architecture
+### Recommended AWS Lightsail Architecture
 
 #### **Option A: Simple Deployment (Recommended for MVP)**
 ```
 ┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
-│   CloudFront    │────│   Elastic        │────│   RDS           │
-│   (CDN + Web)   │    │   Beanstalk      │    │   (PostgreSQL)  │
-│                 │    │   (Next.js App)  │    │                 │
+│   Lightsail     │────│   Lightsail      │────│   Lightsail     │
+│   CDN           │    │   Instance       │    │   Database      │
+│   Distribution  │    │   (Next.js App)  │    │   (PostgreSQL)  │
 └─────────────────┘    └──────────────────┘    └─────────────────┘
                                 │
                        ┌──────────────────┐
-                       │   S3 Bucket      │
+                       │   Lightsail      │
+                       │   Object Storage │
                        │   (Audio Files)  │
                        └──────────────────┘
 ```
 
-#### **Option B: Scalable Architecture (Future Growth)**
+#### **Option B: Hybrid Architecture (Future Growth)**
 ```
 ┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
-│   CloudFront    │────│   Application    │────│   RDS Multi-AZ  │
-│   (Global CDN)  │    │   Load Balancer  │    │   (PostgreSQL)  │
+│   Lightsail CDN │────│   Lightsail      │────│   Lightsail DB  │
+│   (Global)      │    │   Load Balancer  │    │   (Managed)     │
 └─────────────────┘    └──────────────────┘    └─────────────────┘
                                 │
                        ┌──────────────────┐    ┌─────────────────┐
-                       │   ECS Fargate    │────│   S3 + CloudFront│
-                       │   (Next.js)      │    │   (Audio CDN)   │
+                       │   Multiple       │────│   S3 Bucket     │
+                       │   Lightsail      │    │   (Large Files) │
+                       │   Instances      │    │                 │
                        └──────────────────┘    └─────────────────┘
-                                │
-                       ┌──────────────────┐
-                       │   Lambda         │
-                       │   (Audio Processing)│
-                       └──────────────────┘
 ```
 
-### Deployment Scripts and Configuration
+### Lightsail Deployment Configuration
 
-#### **Infrastructure as Code (Terraform)**
-```hcl
-# terraform/main.tf
-resource "aws_elastic_beanstalk_application" "read_my_name" {
-  name        = "read-my-name"
-  description = "Community audio recording platform"
-}
-
-resource "aws_db_instance" "main" {
-  identifier             = "read-my-name-db"
-  engine                = "postgres"
-  engine_version        = "14.9"
-  instance_class        = "db.t3.micro"
-  allocated_storage     = 20
-  storage_encrypted     = true
-  
-  db_name  = "readmyname"
-  username = var.db_username
-  password = var.db_password
-  
-  backup_retention_period = 7
-  backup_window          = "03:00-04:00"
-  maintenance_window     = "sun:04:00-sun:05:00"
-  
-  skip_final_snapshot = true
-}
-
-resource "aws_s3_bucket" "audio_storage" {
-  bucket = "read-my-name-audio-${random_id.bucket_suffix.hex}"
-}
-
-resource "aws_s3_bucket_versioning" "audio_versioning" {
-  bucket = aws_s3_bucket.audio_storage.id
-  versioning_configuration {
-    status = "Enabled"
-  }
-}
-```
-
-#### **Deployment Script**
+#### **Instance Setup Script**
 ```bash
 #!/bin/bash
-# scripts/deploy-aws.sh
+# scripts/setup-lightsail.sh
 
-echo "🚀 Deploying Read My Name to AWS..."
+echo "🚀 Setting up Read My Name on AWS Lightsail..."
 
-# Build the application
-echo "📦 Building Next.js application..."
+# Update system
+sudo apt update && sudo apt upgrade -y
+
+# Install Node.js 18
+curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+sudo apt-get install -y nodejs
+
+# Install PM2 for process management
+sudo npm install -g pm2
+
+# Install nginx for reverse proxy
+sudo apt install -y nginx
+
+# Setup application directory
+sudo mkdir -p /var/www/read-my-name
+sudo chown $USER:$USER /var/www/read-my-name
+
+echo "✅ Base system setup complete!"
+```
+
+#### **Application Deployment Script**
+```bash
+#!/bin/bash
+# scripts/deploy-lightsail.sh
+
+APP_DIR="/var/www/read-my-name"
+BACKUP_DIR="/var/backups/read-my-name"
+
+echo "📦 Deploying Read My Name to Lightsail..."
+
+# Create backup of current deployment
+if [ -d "$APP_DIR" ]; then
+    sudo mkdir -p $BACKUP_DIR
+    sudo cp -r $APP_DIR $BACKUP_DIR/$(date +%Y%m%d_%H%M%S)
+fi
+
+# Pull latest code
+cd $APP_DIR
+git pull origin main
+
+# Install dependencies
+npm ci --production
+
+# Build application
 npm run build
 
-# Create deployment package
-echo "📁 Creating deployment package..."
-zip -r deployment.zip .next package.json package-lock.json public/ -x "*.git*" "node_modules/*"
+# Update environment variables
+sudo cp .env.production /var/www/read-my-name/.env.local
 
-# Deploy to Elastic Beanstalk
-echo "☁️ Deploying to AWS Elastic Beanstalk..."
-eb deploy
+# Restart application with PM2
+pm2 reload ecosystem.config.js
 
-# Run database migrations
-echo "🗄️ Running database migrations..."
-npm run migrate:prod
-
-# Verify deployment
-echo "✅ Verifying deployment..."
-curl -f https://your-app-domain.com/api/health || exit 1
+# Update nginx configuration if needed
+sudo nginx -t && sudo systemctl reload nginx
 
 echo "🎉 Deployment complete!"
 ```
 
-#### **Environment Configuration**
+#### **PM2 Ecosystem Configuration**
+```javascript
+// ecosystem.config.js
+module.exports = {
+  apps: [{
+    name: 'read-my-name',
+    script: 'npm',
+    args: 'start',
+    cwd: '/var/www/read-my-name',
+    instances: 'max',
+    exec_mode: 'cluster',
+    env: {
+      NODE_ENV: 'production',
+      PORT: 3000
+    },
+    env_production: {
+      NODE_ENV: 'production',
+      PORT: 3000
+    },
+    error_file: '/var/log/read-my-name/error.log',
+    out_file: '/var/log/read-my-name/out.log',
+    log_file: '/var/log/read-my-name/combined.log',
+    time: true,
+    max_memory_restart: '1G'
+  }]
+};
+```
+
+#### **Nginx Configuration**
+```nginx
+# /etc/nginx/sites-available/read-my-name
+server {
+    listen 80;
+    server_name your-domain.com;
+    
+    # Redirect HTTP to HTTPS
+    return 301 https://$server_name$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    server_name your-domain.com;
+    
+    # SSL certificate (Lightsail Let's Encrypt)
+    ssl_certificate /etc/letsencrypt/live/your-domain.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/your-domain.com/privkey.pem;
+    
+    # Security headers
+    add_header X-Frame-Options DENY;
+    add_header X-Content-Type-Options nosniff;
+    add_header X-XSS-Protection "1; mode=block";
+    
+    # Audio file handling
+    location ~* \.(mp3|wav|ogg|m4a)$ {
+        root /var/www/read-my-name/uploads;
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+        
+        # Large file support
+        client_max_body_size 100M;
+    }
+    
+    # API routes
+    location /api/ {
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+        
+        # Upload size limit
+        client_max_body_size 100M;
+    }
+    
+    # Next.js application
+    location / {
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+    }
+}
+```
+
+### Lightsail Resource Configuration
+
+#### **Instance Specifications**
+```bash
+# Recommended Lightsail instance sizes by usage:
+
+# Development/Testing
+# $10/month - 1 vCPU, 2GB RAM, 40GB SSD
+aws lightsail create-instances \
+  --instance-names read-my-name-dev \
+  --availability-zone us-east-1a \
+  --blueprint-id ubuntu_20_04 \
+  --bundle-id nano_2_0
+
+# Production (Small - up to 1000 recordings)
+# $20/month - 1 vCPU, 4GB RAM, 80GB SSD
+aws lightsail create-instances \
+  --instance-names read-my-name-prod \
+  --availability-zone us-east-1a \
+  --blueprint-id ubuntu_20_04 \
+  --bundle-id small_2_0
+
+# Production (Medium - up to 5000+ recordings)
+# $40/month - 2 vCPUs, 8GB RAM, 160GB SSD
+aws lightsail create-instances \
+  --instance-names read-my-name-prod \
+  --availability-zone us-east-1a \
+  --blueprint-id ubuntu_20_04 \
+  --bundle-id medium_2_0
+```
+
+#### **Database Setup**
+```bash
+# Create Lightsail managed database
+aws lightsail create-relational-database \
+  --relational-database-name read-my-name-db \
+  --availability-zone us-east-1a \
+  --relational-database-blueprint-id postgres_12 \
+  --relational-database-bundle-id micro_1_0 \
+  --master-database-name readmyname \
+  --master-username dbadmin \
+  --master-user-password "$(openssl rand -base64 32)"
+
+# $15/month - 1 vCPU, 1GB RAM, 20GB SSD
+# Automatic backups, high availability option available
+```
+
+#### **Object Storage for Audio Files**
+```bash
+# Create Lightsail object storage bucket
+aws lightsail create-bucket \
+  --bucket-name read-my-name-audio \
+  --bundle-id small_1_0
+
+# $5/month - 250GB storage, 1TB transfer
+# Additional storage: $0.023/GB/month
+```
+
+#### **CDN Distribution**
+```bash
+# Create Lightsail CDN distribution
+aws lightsail create-distribution \
+  --distribution-name read-my-name-cdn \
+  --origin region=us-east-1,name=read-my-name-prod,protocol-policy=http-only \
+  --default-cache-behavior behavior=cache \
+  --bundle-id small_1_0
+
+# $2.50/month - 50GB data transfer
+# Additional transfer: $0.09/GB
+```
+
+### Environment Configuration
 ```bash
 # .env.production
-DATABASE_URL="postgresql://username:password@your-rds-endpoint:5432/readmyname"
+DATABASE_URL="postgresql://dbadmin:password@ls-xxxxx.us-east-1.rds.amazonaws.com:5432/readmyname"
 NEXTAUTH_URL="https://your-domain.com"
-NEXTAUTH_SECRET="your-production-secret"
-AWS_S3_BUCKET="read-my-name-audio-bucket"
+NEXTAUTH_SECRET="your-production-secret-from-lightsail-secrets"
+
+# Lightsail Object Storage
+AWS_ACCESS_KEY_ID="your-lightsail-access-key"
+AWS_SECRET_ACCESS_KEY="your-lightsail-secret-key"
 AWS_REGION="us-east-1"
+AWS_S3_BUCKET="read-my-name-audio"
+AWS_S3_ENDPOINT="https://s3.us-east-1.amazonaws.com"
+
+# Audio file settings
+AUDIO_UPLOAD_PATH="/var/www/read-my-name/uploads"
+MAX_FILE_SIZE="50MB"
+ALLOWED_AUDIO_TYPES="audio/mpeg,audio/wav,audio/ogg,audio/mp4"
 ```
 
 ### Cost Estimation (Monthly)
-- **Elastic Beanstalk (t3.micro)**: ~$15
-- **RDS PostgreSQL (db.t3.micro)**: ~$15
-- **S3 Storage (100GB audio)**: ~$3
-- **CloudFront (1TB transfer)**: ~$85
-- **Total**: ~$118/month (scales with usage)
+- **Lightsail Instance (Medium)**: $40
+- **Lightsail Database (Micro)**: $15
+- **Lightsail Object Storage**: $5 (base) + usage
+- **Lightsail CDN**: $2.50 (base) + usage
+- **Domain + SSL**: Free (Lightsail managed)
+- **Total Base Cost**: ~$62.50/month
 
-## 📊 AIDS Quilt Integration
+**Advantages of Lightsail:**
+- ✅ **Simplified management** - Less AWS complexity
+- ✅ **Predictable pricing** - Fixed monthly costs
+- ✅ **Integrated services** - Database, storage, CDN in one place
+- ✅ **Easy scaling** - Resize instances as needed
+- ✅ **Managed SSL** - Automatic certificate management
+- ✅ **Built-in monitoring** - Basic metrics included
 
-### Data Caching Script
-Create a comprehensive caching system for AIDS Memorial Quilt data:
+### Backup and Monitoring Strategy
+```bash
+# Automated backup script
+#!/bin/bash
+# scripts/backup-lightsail.sh
 
+# Database backup (automatic with Lightsail managed DB)
+echo "📊 Database backups managed automatically by Lightsail"
+
+# Application backup
+tar -czf /var/backups/app-$(date +%Y%m%d).tar.gz \
+  --exclude=node_modules \
+  --exclude=.next \
+  /var/www/read-my-name
+
+# Upload backup to object storage
+aws s3 cp /var/backups/app-$(date +%Y%m%d).tar.gz \
+  s3://read-my-name-audio/backups/
+
+# Audio files backup (sync to object storage)
+aws s3 sync /var/www/read-my-name/uploads/ \
+  s3://read-my-name-audio/uploads/ \
+  --delete
+
+echo "✅ Backup complete"
+```
+
+## 📊 AIDS Quilt FileMaker Pro Integration
+
+### FileMaker Pro Data Access Strategy
+
+Since the AIDS Quilt database is hosted in FileMaker Pro, we'll need to use FileMaker's web publishing capabilities to access the data:
+
+#### **FileMaker Data API Integration**
 ```javascript
-// scripts/cache-quilt-data.js
-const fetch = require('node-fetch');
-const fs = require('fs').promises;
-
-class QuiltDataCacher {
+// lib/filemaker-client.js
+class FileMakerQuiltClient {
   constructor() {
-    this.baseUrl = 'https://aidsquilt.360works.com';
-    this.cacheDir = './data/quilt-cache';
-    this.batchSize = 100;
+    this.baseUrl = 'https://aidsquilt.360works.com'; // FileMaker Server URL
+    this.database = 'AIDS_Memorial_Quilt'; // Database name
+    this.layout = 'Names_API'; // Layout for API access
+    this.token = null;
+    this.tokenExpiry = null;
   }
 
-  async cacheAllData() {
-    console.log('🧵 Starting AIDS Quilt data caching...');
-    
-    // Create cache directory
-    await fs.mkdir(this.cacheDir, { recursive: true });
-    
-    // Cache different data types
-    await this.cacheNames();
-    await this.cacheBlocks();
-    await this.cacheImages();
-    await this.generateSearchIndex();
-    
-    console.log('✅ Quilt data caching complete!');
-  }
+  async authenticate() {
+    const response = await fetch(`${this.baseUrl}/fmi/data/v1/databases/${this.database}/sessions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Basic ${Buffer.from('api_user:api_password').toString('base64')}`
+      }
+    });
 
-  async cacheNames() {
-    console.log('📝 Caching names data...');
-    
-    const names = await this.fetchAllNames();
-    const organized = this.organizeNamesByLetter(names);
-    
-    // Save master names list
-    await fs.writeFile(
-      `${this.cacheDir}/names-master.json`,
-      JSON.stringify(names, null, 2)
-    );
-    
-    // Save alphabetical organization
-    await fs.writeFile(
-      `${this.cacheDir}/names-by-letter.json`,
-      JSON.stringify(organized, null, 2)
-    );
-    
-    console.log(`📊 Cached ${names.length} names`);
-  }
-
-  async cacheBlocks() {
-    console.log('🔲 Caching block data...');
-    
-    const blocks = await this.fetchAllBlocks();
-    const blockMap = new Map();
-    
-    for (const block of blocks) {
-      blockMap.set(block.id, {
-        ...block,
-        cachedAt: new Date().toISOString(),
-        imageUrl: this.getBlockImageUrl(block.id),
-        zoomLevels: this.generateZoomLevels(block.id)
-      });
+    if (response.ok) {
+      const data = await response.json();
+      this.token = data.response.token;
+      this.tokenExpiry = Date.now() + (14 * 60 * 1000); // 14 minutes
+      return this.token;
     }
     
-    await fs.writeFile(
-      `${this.cacheDir}/blocks-master.json`,
-      JSON.stringify(Object.fromEntries(blockMap), null, 2)
-    );
-    
-    console.log(`🔲 Cached ${blocks.length} blocks`);
+    throw new Error('FileMaker authentication failed');
   }
 
-  async fetchAllNames() {
-    // Implementation to fetch all names from the API
-    // Handle pagination, rate limiting, etc.
-    const allNames = [];
-    let page = 1;
+  async ensureAuthenticated() {
+    if (!this.token || Date.now() >= this.tokenExpiry) {
+      await this.authenticate();
+    }
+  }
+
+  async findRecords(query = {}, layout = this.layout) {
+    await this.ensureAuthenticated();
+    
+    const searchParams = new URLSearchParams();
+    if (Object.keys(query).length > 0) {
+      searchParams.append('query', JSON.stringify([query]));
+    }
+    
+    const response = await fetch(
+      `${this.baseUrl}/fmi/data/v1/databases/${this.database}/layouts/${layout}/records?${searchParams}`,
+      {
+        headers: {
+          'Authorization': `Bearer ${this.token}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    if (response.ok) {
+      const data = await response.json();
+      return data.response.data;
+    }
+    
+    throw new Error(`FileMaker query failed: ${response.status}`);
+  }
+
+  async getAllNames() {
+    console.log('📋 Fetching all names from FileMaker...');
+    
+    // FileMaker pagination - get records in batches
+    const allRecords = [];
+    let offset = 1;
+    const limit = 100; // FileMaker recommended batch size
     
     while (true) {
-      const response = await fetch(`${this.baseUrl}/api/names?page=${page}&limit=${this.batchSize}`);
-      const data = await response.json();
+      const records = await this.findRecords({}, `Names_API?_offset=${offset}&_limit=${limit}`);
       
-      if (data.names.length === 0) break;
+      if (!records || records.length === 0) break;
       
-      allNames.push(...data.names);
-      page++;
+      allRecords.push(...records.map(record => ({
+        id: record.fieldData.ID,
+        firstName: record.fieldData.First_Name,
+        lastName: record.fieldData.Last_Name,
+        fullName: record.fieldData.Full_Name,
+        blockId: record.fieldData.Block_ID,
+        panelNumber: record.fieldData.Panel_Number,
+        coordinates: {
+          x: record.fieldData.X_Coordinate,
+          y: record.fieldData.Y_Coordinate,
+          width: record.fieldData.Width,
+          height: record.fieldData.Height
+        },
+        dateAdded: record.fieldData.Date_Added,
+        lastModified: record.modificationTimestamp
+      })));
       
-      // Rate limiting
+      offset += limit;
+      
+      // Rate limiting for FileMaker Server
       await this.sleep(100);
     }
     
-    return allNames;
+    console.log(`📊 Retrieved ${allRecords.length} names from FileMaker`);
+    return allRecords;
   }
 
-  organizeNamesByLetter(names) {
-    const organized = {};
+  async getAllBlocks() {
+    console.log('🔲 Fetching all blocks from FileMaker...');
     
-    names.forEach(name => {
-      const firstLetter = name.firstName?.[0]?.toUpperCase() || '#';
-      if (!organized[firstLetter]) {
-        organized[firstLetter] = [];
+    const blocks = await this.findRecords({}, 'Blocks_API');
+    
+    return blocks.map(record => ({
+      id: record.fieldData.Block_ID,
+      title: record.fieldData.Block_Title,
+      description: record.fieldData.Description,
+      imageUrl: record.fieldData.Image_URL,
+      thumbnailUrl: record.fieldData.Thumbnail_URL,
+      deepZoomUrl: record.fieldData.Deep_Zoom_URL,
+      dimensions: {
+        width: record.fieldData.Width_Inches,
+        height: record.fieldData.Height_Inches
+      },
+      location: record.fieldData.Current_Location,
+      dateCreated: record.fieldData.Date_Created,
+      lastModified: record.modificationTimestamp,
+      nameCount: record.fieldData.Name_Count
+    }));
+  }
+
+  async findNamesByBlock(blockId) {
+    return await this.findRecords({
+      'Block_ID': `=${blockId}`
+    }, 'Names_API');
+  }
+
+  async findBlocksByName(nameSearch) {
+    // Search across multiple name fields
+    const searchQueries = [
+      { 'First_Name': `*${nameSearch}*` },
+      { 'Last_Name': `*${nameSearch}*` },
+      { 'Full_Name': `*${nameSearch}*` }
+    ];
+
+    const results = [];
+    for (const query of searchQueries) {
+      try {
+        const matches = await this.findRecords(query, 'Names_API');
+        results.push(...matches);
+      } catch (err) {
+        console.warn('Search query failed:', query, err.message);
       }
-      organized[firstLetter].push(name);
-    });
-    
-    return organized;
+    }
+
+    // Remove duplicates based on ID
+    const uniqueResults = results.filter((record, index, self) => 
+      index === self.findIndex(r => r.fieldData.ID === record.fieldData.ID)
+    );
+
+    return uniqueResults;
   }
 
-  generateSearchIndex() {
-    // Create searchable index for fast lookups
-    // Implementation for fuzzy search, phonetic matching, etc.
+  async logout() {
+    if (this.token) {
+      await fetch(`${this.baseUrl}/fmi/data/v1/databases/${this.database}/sessions/${this.token}`, {
+        method: 'DELETE'
+      });
+      this.token = null;
+    }
   }
 
   sleep(ms) {
@@ -345,31 +601,409 @@ class QuiltDataCacher {
   }
 }
 
-// Usage
-if (require.main === module) {
-  const cacher = new QuiltDataCacher();
-  cacher.cacheAllData().catch(console.error);
-}
+module.exports = FileMakerQuiltClient;
 ```
 
-### Automated Sync Schedule
+### Data Synchronization Script for FileMaker
 ```javascript
-// scripts/sync-schedule.js
-const cron = require('node-cron');
+// scripts/sync-filemaker-quilt.js
+const FileMakerQuiltClient = require('../lib/filemaker-client');
+const fs = require('fs').promises;
+const path = require('path');
 
-// Run daily at 2 AM
-cron.schedule('0 2 * * *', async () => {
-  console.log('🔄 Starting daily quilt data sync...');
+class FileMakerQuiltSync {
+  constructor() {
+    this.client = new FileMakerQuiltClient();
+    this.cacheDir = './data/quilt-cache';
+    this.lastSyncFile = path.join(this.cacheDir, 'last-sync.json');
+  }
+
+  async syncAllData(forceFullSync = false) {
+    console.log('🔄 Starting FileMaker QuAIDS Quilt data sync...');
+    
+    try {
+      await fs.mkdir(this.cacheDir, { recursive: true });
+      
+      const lastSync = await this.getLastSyncTime();
+      const isFullSync = forceFullSync || !lastSync;
+      
+      if (isFullSync) {
+        console.log('📋 Performing full sync...');
+        await this.fullSync();
+      } else {
+        console.log('🔄 Performing incremental sync...');
+        await this.incrementalSync(lastSync);
+      }
+      
+      await this.updateLastSyncTime();
+      console.log('✅ FileMaker sync complete!');
+      
+    } catch (error) {
+      console.error('❌ FileMaker sync failed:', error);
+      throw error;
+    } finally {
+      await this.client.logout();
+    }
+  }
+
+  async fullSync() {
+    // Get all names
+    const names = await this.client.getAllNames();
+    await this.saveToCache('names-master.json', names);
+    
+    // Organize names by first letter for search
+    const namesByLetter = this.organizeNamesByLetter(names);
+    await this.saveToCache('names-by-letter.json', namesByLetter);
+    
+    // Get all blocks
+    const blocks = await this.client.getAllBlocks();
+    await this.saveToCache('blocks-master.json', blocks);
+    
+    // Create block-to-names mapping
+    const blockNameMap = this.createBlockNameMapping(names);
+    await this.saveToCache('block-name-mapping.json', blockNameMap);
+    
+    // Generate search indexes
+    await this.generateSearchIndexes(names, blocks);
+    
+    console.log(`📊 Full sync complete: ${names.length} names, ${blocks.length} blocks`);
+  }
+
+  async incrementalSync(lastSyncTime) {
+    // FileMaker modification timestamp query
+    const modifiedSince = new Date(lastSyncTime).toISOString();
+    
+    // Get recently modified names
+    const modifiedNames = await this.client.findRecords({
+      'Modification_Timestamp': `>=${modifiedSince}`
+    }, 'Names_API');
+    
+    if (modifiedNames.length > 0) {
+      console.log(`🔄 Found ${modifiedNames.length} modified names`);
+      
+      // Update existing cache
+      const existingNames = await this.loadFromCache('names-master.json');
+      const updatedNames = this.mergeUpdates(existingNames, modifiedNames);
+      
+      await this.saveToCache('names-master.json', updatedNames);
+      await this.updateDerivedData(updatedNames);
+    }
+    
+    // Get recently modified blocks
+    const modifiedBlocks = await this.client.findRecords({
+      'Modification_Timestamp': `>=${modifiedSince}`
+    }, 'Blocks_API');
+    
+    if (modifiedBlocks.length > 0) {
+      console.log(`🔄 Found ${modifiedBlocks.length} modified blocks`);
+      
+      const existingBlocks = await this.loadFromCache('blocks-master.json');
+      const updatedBlocks = this.mergeUpdates(existingBlocks, modifiedBlocks);
+      
+      await this.saveToCache('blocks-master.json', updatedBlocks);
+    }
+  }
+
+  organizeNamesByLetter(names) {
+    const organized = {};
+    
+    names.forEach(name => {
+      const firstLetter = (name.firstName?.[0] || name.lastName?.[0] || '#').toUpperCase();
+      if (!organized[firstLetter]) {
+        organized[firstLetter] = [];
+      }
+      organized[firstLetter].push(name);
+    });
+    
+    // Sort within each letter group
+    Object.keys(organized).forEach(letter => {
+      organized[letter].sort((a, b) => {
+        const aName = `${a.firstName || ''} ${a.lastName || ''}`.trim();
+        const bName = `${b.firstName || ''} ${b.lastName || ''}`.trim();
+        return aName.localeCompare(bName);
+      });
+    });
+    
+    return organized;
+  }
+
+  createBlockNameMapping(names) {
+    const mapping = {};
+    
+    names.forEach(name => {
+      if (!mapping[name.blockId]) {
+        mapping[name.blockId] = [];
+      }
+      mapping[name.blockId].push({
+        id: name.id,
+        fullName: name.fullName,
+        coordinates: name.coordinates
+      });
+    });
+    
+    return mapping;
+  }
+
+  async generateSearchIndexes(names, blocks) {
+    // Create searchable index for fuzzy matching
+    const searchIndex = {
+      names: names.map(name => ({
+        id: name.id,
+        searchTerms: [
+          name.firstName?.toLowerCase(),
+          name.lastName?.toLowerCase(),
+          name.fullName?.toLowerCase(),
+          // Add phonetic variations if needed
+          this.soundex(name.firstName),
+          this.soundex(name.lastName)
+        ].filter(Boolean),
+        blockId: name.blockId
+      })),
+      blocks: blocks.map(block => ({
+        id: block.id,
+        searchTerms: [
+          block.title?.toLowerCase(),
+          block.description?.toLowerCase()
+        ].filter(Boolean)
+      }))
+    };
+    
+    await this.saveToCache('search-index.json', searchIndex);
+  }
+
+  // Simple Soundex implementation for phonetic matching
+  soundex(word) {
+    if (!word) return '';
+    
+    const soundexMap = {
+      'B': '1', 'F': '1', 'P': '1', 'V': '1',
+      'C': '2', 'G': '2', 'J': '2', 'K': '2', 'Q': '2', 'S': '2', 'X': '2', 'Z': '2',
+      'D': '3', 'T': '3',
+      'L': '4',
+      'M': '5', 'N': '5',
+      'R': '6'
+    };
+    
+    const upper = word.toUpperCase();
+    let soundex = upper[0];
+    
+    for (let i = 1; i < upper.length && soundex.length < 4; i++) {
+      const code = soundexMap[upper[i]];
+      if (code && code !== soundex[soundex.length - 1]) {
+        soundex += code;
+      }
+    }
+    
+    return soundex.padEnd(4, '0');
+  }
+
+  async saveToCache(filename, data) {
+    const filepath = path.join(this.cacheDir, filename);
+    await fs.writeFile(filepath, JSON.stringify(data, null, 2));
+  }
+
+  async loadFromCache(filename) {
+    try {
+      const filepath = path.join(this.cacheDir, filename);
+      const data = await fs.readFile(filepath, 'utf8');
+      return JSON.parse(data);
+    } catch (err) {
+      return null;
+    }
+  }
+
+  async getLastSyncTime() {
+    try {
+      const syncData = await this.loadFromCache('last-sync.json');
+      return syncData?.timestamp;
+    } catch (err) {
+      return null;
+    }
+  }
+
+  async updateLastSyncTime() {
+    await this.saveToCache('last-sync.json', {
+      timestamp: new Date().toISOString(),
+      version: '1.0'
+    });
+  }
+
+  mergeUpdates(existing, updates) {
+    const existingMap = new Map(existing.map(item => [item.id, item]));
+    
+    updates.forEach(update => {
+      existingMap.set(update.fieldData.ID, this.transformFileMakerRecord(update));
+    });
+    
+    return Array.from(existingMap.values());
+  }
+
+  transformFileMakerRecord(fmRecord) {
+    // Transform FileMaker record format to our standard format
+    return {
+      id: fmRecord.fieldData.ID,
+      firstName: fmRecord.fieldData.First_Name,
+      lastName: fmRecord.fieldData.Last_Name,
+      fullName: fmRecord.fieldData.Full_Name,
+      blockId: fmRecord.fieldData.Block_ID,
+      coordinates: {
+        x: fmRecord.fieldData.X_Coordinate,
+        y: fmRecord.fieldData.Y_Coordinate,
+        width: fmRecord.fieldData.Width,
+        height: fmRecord.fieldData.Height
+      },
+      lastModified: fmRecord.modificationTimestamp
+    };
+  }
+}
+
+// CLI usage
+if (require.main === module) {
+  const sync = new FileMakerQuiltSync();
+  const forceFullSync = process.argv.includes('--full');
   
-  const cacher = new QuiltDataCacher();
-  await cacher.cacheAllData();
-  
-  // Update database with new data
-  await updateDatabase();
-  
-  console.log('✅ Daily sync complete');
-});
+  sync.syncAllData(forceFullSync)
+    .then(() => process.exit(0))
+    .catch(err => {
+      console.error('Sync failed:', err);
+      process.exit(1);
+    });
+}
+
+module.exports = FileMakerQuiltSync;
 ```
+
+### FileMaker Web Viewer Integration
+```javascript
+// lib/filemaker-web-viewer.js
+class FileMakerWebViewer {
+  constructor(database, layout) {
+    this.baseUrl = 'https://aidsquilt.360works.com';
+    this.database = database;
+    this.layout = layout;
+  }
+
+  // Generate URLs for FileMaker Web Viewer
+  getBlockViewerUrl(blockId, highlightName = null) {
+    const params = new URLSearchParams({
+      database: this.database,
+      layout: 'Block_Viewer',
+      'Block_ID': blockId
+    });
+
+    if (highlightName) {
+      params.append('highlight', highlightName);
+    }
+
+    return `${this.baseUrl}/fmi/webd/${this.database}?${params}`;
+  }
+
+  // Generate direct image URLs from FileMaker container fields
+  getBlockImageUrl(blockId, imageField = 'Block_Image') {
+    return `${this.baseUrl}/fmi/xml/cnt/data.gif?-db=${this.database}&-lay=Blocks&-recid=${blockId}&-field=${imageField}`;
+  }
+
+  // Get deep zoom tile URL for high-resolution viewing
+  getDeepZoomUrl(blockId) {
+    return `${this.baseUrl}/fmi/webd/Deep_Zoom_Viewer?blockId=${blockId}`;
+  }
+
+  // Embed FileMaker Web Viewer in iframe
+  generateEmbedCode(blockId, width = '100%', height = '600px') {
+    const viewerUrl = this.getBlockViewerUrl(blockId);
+    
+    return `
+      <iframe 
+        src="${viewerUrl}"
+        width="${width}"
+        height="${height}"
+        frameborder="0"
+        allowfullscreen
+        style="border: 1px solid #ccc; border-radius: 4px;"
+      ></iframe>
+    `;
+  }
+}
+
+module.exports = FileMakerWebViewer;
+```
+
+### Scheduled Sync with FileMaker
+```javascript
+// scripts/filemaker-sync-schedule.js
+const cron = require('node-cron');
+const FileMakerQuiltSync = require('./sync-filemaker-quilt');
+
+console.log('📅 Starting FileMaker sync scheduler...');
+
+// Incremental sync every hour during business hours
+cron.schedule('0 9-17 * * 1-5', async () => {
+  console.log('🔄 Starting hourly incremental sync...');
+  
+  const sync = new FileMakerQuiltSync();
+  try {
+    await sync.syncAllData(false); // Incremental sync
+    console.log('✅ Hourly sync complete');
+  } catch (error) {
+    console.error('❌ Hourly sync failed:', error);
+  }
+});
+
+// Full sync every night at 2 AM
+cron.schedule('0 2 * * *', async () => {
+  console.log('🌙 Starting nightly full sync...');
+  
+  const sync = new FileMakerQuiltSync();
+  try {
+    await sync.syncAllData(true); // Full sync
+    console.log('✅ Nightly full sync complete');
+  } catch (error) {
+    console.error('❌ Nightly sync failed:', error);
+  }
+});
+
+console.log('⏰ FileMaker sync scheduler started');
+console.log('   - Incremental sync: Every hour, 9 AM - 5 PM, Mon-Fri');
+console.log('   - Full sync: Every night at 2 AM');
+```
+
+### FileMaker-Specific Considerations
+
+#### **Authentication & Security**
+- FileMaker requires specific user account with API privileges
+- Session tokens expire after 15 minutes of inactivity
+- Rate limiting: ~100 requests per minute recommended
+- SSL/HTTPS required for external access
+
+#### **Data Field Mapping**
+```javascript
+// Expected FileMaker field names (adjust based on actual schema)
+const FILEMAKER_FIELDS = {
+  names: {
+    id: 'ID',
+    firstName: 'First_Name',
+    lastName: 'Last_Name', 
+    fullName: 'Full_Name',
+    blockId: 'Block_ID',
+    xCoord: 'X_Coordinate',
+    yCoord: 'Y_Coordinate',
+    width: 'Width',
+    height: 'Height'
+  },
+  blocks: {
+    id: 'Block_ID',
+    title: 'Block_Title',
+    imageContainer: 'Block_Image',
+    thumbnailContainer: 'Thumbnail_Image'
+  }
+};
+```
+
+#### **Performance Optimization**
+- Cache FileMaker data locally to reduce API calls
+- Use FileMaker's modification timestamps for incremental sync
+- Implement connection pooling for multiple concurrent requests
+- Consider FileMaker's concurrent user licensing limits
 
 ## 🔍 OpenSeaDragon Block Viewer Integration
 
@@ -612,3 +1246,58 @@ export function InteractiveNameLink({ name, children, showPreview = true }: Inte
 **Total Estimated Timeline: 13-19 weeks**
 
 Each phase builds on the previous one, ensuring the platform remains functional and deployable throughout development. The modular architecture we've established makes this roadmap achievable and allows for flexible prioritization based on exhibition deadlines and user feedback.
+
+Perfect! Now you have a comprehensive recording validation system with:
+Immediate Implementation (Active Now):
+✅ Duration Validation:
+
+2-5 seconds per name (configurable)
+Rejects recordings outside this range
+Provides detailed feedback
+
+✅ File Validation:
+
+File type and size checks
+Audio duration extraction
+Metadata validation
+
+✅ User Feedback:
+
+Clear error messages
+Visual progress indicators
+Detailed metrics display
+
+Future Enhancements (Stubbed):
+🔄 Audio Quality Analysis (Ready to implement):
+
+Loudness analysis using Web Audio API
+Distortion detection
+Signal quality metrics
+
+🔄 Silence Gap Detection (Ready to implement):
+
+Detect pauses between names
+Validate appropriate spacing
+Check for consistent pacing
+
+🔄 Speech Recognition (Ready to implement):
+
+Verify spoken names match expected
+Count actual spoken names
+Check pronunciation quality
+
+How It Works:
+
+Upload/Record: User submits audio file
+Validation: System checks duration against name count
+Feedback: User gets immediate validation results
+Storage: Only valid recordings are accepted (or flagged for review)
+
+Configuration:
+The time constraints are now configurable in CONFIG.RECORDING:
+
+MIN_DURATION_PER_NAME: 2 seconds
+MAX_DURATION_PER_NAME: 5 seconds
+
+You can adjust these values as needed. The system will automatically calculate expected durations based on the number of names in each page.
+This ensures recording quality while being ready to expand with more sophisticated audio analysis in the future!

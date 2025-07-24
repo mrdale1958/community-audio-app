@@ -60,6 +60,7 @@ jspm_packages/
 
 # Prisma
 prisma/migrations/dev.db*
+prisma/dev.db*
 
 # Vercel
 .vercel

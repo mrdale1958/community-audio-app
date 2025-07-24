@@ -1,0 +1,105 @@
+// app/api/stats/route.ts - Comprehensive statistics endpoint
+
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
+
+export async function GET(request: NextRequest) {
+  try {
+    // Get comprehensive statistics from the database
+    const [
+      totalNamesResult,
+      totalRecordings,
+      approvedRecordings,
+      totalPages,
+      pagesWithRecordings,
+      recordingsByStatus
+    ] = await Promise.all([
+      // Calculate total names across all pages
+      prisma.nameList.aggregate({
+        _sum: {
+          namesCount: true
+        }
+      }),
+      
+      // Total recordings count
+      prisma.recording.count(),
+      
+      // Approved recordings count
+      prisma.recording.count({
+        where: {
+          status: 'APPROVED'
+        }
+      }),
+      
+      // Total pages count
+      prisma.nameList.count(),
+      
+      // Pages that have at least one recording
+      prisma.nameList.count({
+        where: {
+          recordings: {
+            some: {}
+          }
+        }
+      }),
+      
+      // Recording counts by status
+      prisma.recording.groupBy({
+        by: ['status'],
+        _count: {
+          status: true
+        }
+      })
+    ]);
+
+    const totalNames = totalNamesResult._sum.namesCount || 0;
+    const completionPercentage = totalNames > 0 ? (approvedRecordings / totalNames) * 100 : 0;
+    const pagesCompletionPercentage = totalPages > 0 ? (pagesWithRecordings / totalPages) * 100 : 0;
+
+    // Format recording status breakdown
+    const statusBreakdown = recordingsByStatus.reduce((acc, item) => {
+      acc[item.status.toLowerCase()] = item._count.status;
+      return acc;
+    }, {} as Record<string, number>);
+
+    const stats = {
+      totalNames,
+      totalRecordings,
+      approvedRecordings,
+      totalPages,
+      pagesWithRecordings,
+      remainingNames: totalNames - approvedRecordings,
+      completionPercentage: Math.round(completionPercentage * 10) / 10, // Round to 1 decimal
+      pagesCompletionPercentage: Math.round(pagesCompletionPercentage * 10) / 10,
+      recordingStatus: {
+        pending: statusBreakdown.pending || 0,
+        approved: statusBreakdown.approved || 0,
+        rejected: statusBreakdown.rejected || 0,
+        archived: statusBreakdown.archived || 0,
+      },
+      // Additional metrics
+      averageRecordingsPerPage: totalPages > 0 ? Math.round((totalRecordings / totalPages) * 10) / 10 : 0,
+      pagesNeedingRecordings: totalPages - pagesWithRecordings,
+    };
+
+    return NextResponse.json({
+      success: true,
+      data: stats,
+      meta: {
+        lastUpdated: new Date().toISOString(),
+        targetAchieved: completionPercentage >= 100,
+      }
+    });
+
+  } catch (error) {
+    console.error('Stats API error:', error);
+    return NextResponse.json(
+      { 
+        success: false,
+        error: 'Failed to fetch statistics',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      },
+      { status: 500 }
+    );
+  }
+}

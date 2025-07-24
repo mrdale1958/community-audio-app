@@ -7,7 +7,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "db:studio": "npx prisma studio",
+    "db:inspect": "sqlite3 prisma/dev.db",
+    "db:backup": "cp prisma/dev.db prisma/dev.db.backup"
   },
   "dependencies": {
     "@emotion/cache": "^11.11.0",
@@ -20,6 +23,7 @@
     "jspdf": "^3.0.1",
     "next": "14.2.3",
     "next-auth": "^4.24.7",
+    "node-fetch": "^2.7.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "zod": "^3.23.8"
@@ -37,6 +41,6 @@
     "i": "^0.3.7",
     "npm": "^11.4.2",
     "prisma": "^6.12.0",
-    "typescript": "^5.4.5"
+    "typescript": "^5.8.3"
   }
 }

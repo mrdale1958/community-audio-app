@@ -107,6 +107,10 @@ View the database:
 ```bash
 npx prisma studio
 ```
+## Database Location
+- The SQLite database is located at `prisma/dev.db`
+- Use `DATABASE_URL="file:./dev.db"` in .env (Prisma resolves this relative to the prisma/ directory)
+- For direct SQLite access: `sqlite3 prisma/dev.db`
 
 ## Deployment
 
