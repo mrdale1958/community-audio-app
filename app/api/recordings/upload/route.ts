@@ -120,9 +120,3 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Handle file size limits and supported formats
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-}
