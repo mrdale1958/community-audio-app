@@ -1,233 +1,162 @@
-// app/dashboard/page.tsx - Updated with dynamic progress calculation
+'use client'
 
-'use client';
-
-import { useSession } from 'next-auth/react';
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import {
-  Box,
-  Typography,
-  Card,
-  CardContent,
-  Button,
-  Grid,
-  LinearProgress,
-  Chip,
-  Alert,
-  CircularProgress,
-} from '@mui/material';
-import {
-  Mic,
-  Upload,
-  BarChart,
-  Person,
-  Assignment,
-} from '@mui/icons-material';
-
-interface DashboardStats {
-  totalNames: number;
-  totalRecordings: number;
-  approvedRecordings: number;
-  pagesWithRecordings: number;
-  totalPages: number;
-  completionPercentage: number;
-  remainingNames: number;
-}
+import { Container, Typography, Box, Card, CardContent, Grid, Button } from '@mui/material'
+import { 
+  Mic, 
+  Upload, 
+  PlayArrow, 
+  Visibility, 
+  Settings, 
+  GraphicEq,
+  Dashboard as DashboardIcon,
+  Analytics,
+  People,
+  Assessment
+} from '@mui/icons-material'
+import { useSession } from 'next-auth/react'
+import { useRouter } from 'next/navigation'
+import { useEffect } from 'react'
+import Link from 'next/link'
 
 export default function DashboardPage() {
-  const { data: session, status } = useSession();
-  const router = useRouter();
-  const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data: session, status } = useSession()
+  const router = useRouter()
 
-  // Fetch dashboard statistics
+  // Redirect unauthenticated users
   useEffect(() => {
-    async function fetchStats() {
-      try {
-        setLoading(true);
-        setError(null);
-
-        const response = await fetch('/api/stats');
-        if (!response.ok) {
-          throw new Error('Failed to fetch statistics');
-        }
-
-        const data = await response.json();
-        
-        if (data.success) {
-          setStats(data.data);
-        } else {
-          throw new Error(data.error || 'Failed to load statistics');
-        }
-      } catch (err) {
-        console.error('Error fetching stats:', err);
-        setError(err instanceof Error ? err.message : 'Failed to load statistics');
-      } finally {
-        setLoading(false);
-      }
+    if (status === 'unauthenticated') {
+      router.replace('/auth/signin')
     }
+  }, [status, router])
 
-    if (status === 'authenticated') {
-      fetchStats();
-      
-      // Refresh stats every 2 minutes
-      const interval = setInterval(fetchStats, 120000);
-      return () => clearInterval(interval);
-    }
-  }, [status]);
-
-  if (status === 'loading') {
-    return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
-        <CircularProgress />
-      </Box>
-    );
+  // Show loading while checking authentication
+  if (status === 'loading' || status === 'unauthenticated') {
+    return null
   }
 
-  if (status === 'unauthenticated') {
-    router.push('/auth/signin');
-    return null;
-  }
-
-  const userRole = session?.user?.role || 'CONTRIBUTOR';
+  const userRole = session?.user?.role
 
   return (
-    <Box sx={{ p: 3 }}>
+    <Container maxWidth="lg" sx={{ py: 4 }}>
       {/* Welcome Header */}
       <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" gutterBottom>
+        <Typography variant="h3" component="h1" gutterBottom>
           Welcome back, {session?.user?.name}
         </Typography>
-        <Typography variant="body1" color="text.secondary">
-          {userRole === 'CONTRIBUTOR' && 'Ready to contribute to the Call My Name Project?'}
-          {userRole === 'MANAGER' && 'Review recordings and manage project progress.'}
-          {userRole === 'ADMIN' && 'Full system access - manage users and project settings.'}
-          {userRole === 'OBSERVER' && 'Monitor project progress and statistics.'}
+        <Typography variant="h6" color="text.secondary">
+          {userRole === 'ADMIN' ? 'Full system access - manage users and project settings.' :
+           userRole === 'MANAGER' ? 'Manage project content and user contributions.' :
+           userRole === 'GALLERIST' ? 'Manage exhibitions and gallery installations.' :
+           userRole === 'CONTRIBUTOR' ? 'Ready to contribute more recordings?' :
+           'Observe project progress and community contributions.'}
         </Typography>
       </Box>
 
-      {/* Project Progress Card */}
-      {loading ? (
-        <Card sx={{ mb: 3 }}>
-          <CardContent>
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', py: 4 }}>
-              <CircularProgress size={24} sx={{ mr: 2 }} />
-              <Typography>Loading project statistics...</Typography>
-            </Box>
-          </CardContent>
-        </Card>
-      ) : error ? (
-        <Alert severity="error" sx={{ mb: 3 }}>
-          {error}
-        </Alert>
-      ) : stats ? (
-        <Card sx={{ mb: 3, background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white' }}>
-          <CardContent>
-            <Typography variant="h6" gutterBottom>
-              Call My Name Project Progress
-            </Typography>
-            
-            <Box sx={{ mb: 2 }}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                <Typography variant="body2">
-                  {stats.approvedRecordings.toLocaleString()} of {stats.totalNames.toLocaleString()} names recorded
-                </Typography>
-                <Typography variant="body2">
-                  {stats.completionPercentage.toFixed(1)}%
-                </Typography>
-              </Box>
-              <LinearProgress 
-                variant="determinate" 
-                value={stats.completionPercentage}
-                sx={{ 
-                  height: 8, 
-                  borderRadius: 4,
-                  backgroundColor: 'rgba(255,255,255,0.3)',
-                  '& .MuiLinearProgress-bar': {
-                    backgroundColor: 'rgba(255,255,255,0.8)'
-                  }
-                }}
-              />
-            </Box>
-
-            <Grid container spacing={2}>
-              <Grid item xs={6} sm={3}>
-                <Box textAlign="center">
-                  <Typography variant="h6">{stats.totalNames.toLocaleString()}</Typography>
-                  <Typography variant="caption">Total Names</Typography>
-                </Box>
-              </Grid>
-              <Grid item xs={6} sm={3}>
-                <Box textAlign="center">
-                  <Typography variant="h6">{stats.approvedRecordings.toLocaleString()}</Typography>
-                  <Typography variant="caption">Recorded</Typography>
-                </Box>
-              </Grid>
-              <Grid item xs={6} sm={3}>
-                <Box textAlign="center">
-                  <Typography variant="h6">{stats.totalPages.toLocaleString()}</Typography>
-                  <Typography variant="caption">Total Pages</Typography>
-                </Box>
-              </Grid>
-              <Grid item xs={6} sm={3}>
-                <Box textAlign="center">
-                  <Typography variant="h6">{stats.remainingNames.toLocaleString()}</Typography>
-                  <Typography variant="caption">Remaining</Typography>
-                </Box>
-              </Grid>
+      {/* Progress Section - Keep your existing progress bar here */}
+      <Card sx={{ mb: 4, background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white' }}>
+        <CardContent sx={{ py: 3 }}>
+          <Typography variant="h5" gutterBottom>
+            Call My Name Project Progress
+          </Typography>
+          <Typography variant="body1" sx={{ mb: 2 }}>
+            0 of 91,927 names recorded
+          </Typography>
+          <Box sx={{ 
+            height: 8, 
+            backgroundColor: 'rgba(255,255,255,0.3)', 
+            borderRadius: 4,
+            mb: 2
+          }}>
+            <Box sx={{ 
+              height: '100%', 
+              backgroundColor: 'white', 
+              borderRadius: 4,
+              width: '0%' 
+            }} />
+          </Box>
+          <Grid container spacing={4}>
+            <Grid item xs={6} sm={3}>
+              <Typography variant="h4" fontWeight="bold">91,927</Typography>
+              <Typography variant="body2">Total Names</Typography>
             </Grid>
-          </CardContent>
-        </Card>
-      ) : null}
+            <Grid item xs={6} sm={3}>
+              <Typography variant="h4" fontWeight="bold">0</Typography>
+              <Typography variant="body2">Recorded</Typography>
+            </Grid>
+            <Grid item xs={6} sm={3}>
+              <Typography variant="h4" fontWeight="bold">2,095</Typography>
+              <Typography variant="body2">Total Pages</Typography>
+            </Grid>
+            <Grid item xs={6} sm={3}>
+              <Typography variant="h4" fontWeight="bold">91,927</Typography>
+              <Typography variant="body2">Remaining</Typography>
+            </Grid>
+          </Grid>
+        </CardContent>
+      </Card>
 
-      {/* Action Cards */}
-      <Grid container spacing={3}>
-        {/* Recording Actions - All users can contribute */}
+      {/* Main Actions Grid */}
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        {/* Recording Section */}
         <Grid item xs={12} md={6}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
-                <Mic sx={{ mr: 1 }} />
-                Record Names
-              </Typography>
-              <Typography variant="body2" color="text.secondary" paragraph>
+          <Card sx={{ 
+            height: '100%',
+            display: 'flex',
+            flexDirection: 'column'
+          }}>
+            <CardContent sx={{
+              display: 'flex',
+              flexDirection: 'column',
+              flexGrow: 1
+            }}>
+              <Box display="flex" alignItems="center" gap={2} mb={2}>
+                <Mic color="primary" />
+                <Typography variant="h6">Record Names</Typography>
+              </Box>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 3, flexGrow: 1 }}>
                 Contribute to the Call My Name Project by recording names live through your browser.
               </Typography>
+              <Typography variant="caption" color="primary" sx={{ mb: 2 }}>
+                91,927 names remaining
+              </Typography>
               <Button
+                component={Link}
+                href="/contribute/live"
                 variant="contained"
-                color="primary"
-                onClick={() => router.push('/contribute/live')}
-                sx={{ mr: 1, mb: 1 }}
+                fullWidth
+                sx={{ minHeight: '40px' }}
               >
                 Start Recording
               </Button>
-              {stats && stats.remainingNames > 0 && (
-                <Chip 
-                  label={`${stats.remainingNames.toLocaleString()} names remaining`}
-                  size="small"
-                  color="info"
-                />
-              )}
             </CardContent>
           </Card>
         </Grid>
 
         <Grid item xs={12} md={6}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
-                <Upload sx={{ mr: 1 }} />
-                Upload Recordings
-              </Typography>
-              <Typography variant="body2" color="text.secondary" paragraph>
+          <Card sx={{ 
+            height: '100%',
+            display: 'flex',
+            flexDirection: 'column'
+          }}>
+            <CardContent sx={{
+              display: 'flex',
+              flexDirection: 'column',
+              flexGrow: 1
+            }}>
+              <Box display="flex" alignItems="center" gap={2} mb={2}>
+                <Upload color="secondary" />
+                <Typography variant="h6">Upload Recordings</Typography>
+              </Box>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 3, flexGrow: 1 }}>
                 Upload recordings you've made offline using downloaded name lists.
               </Typography>
               <Button
+                component={Link}
+                href="/contribute/offline"
                 variant="contained"
                 color="secondary"
-                onClick={() => router.push('/contribute/offline')}
+                fullWidth
+                sx={{ minHeight: '40px' }}
               >
                 Upload Files
               </Button>
@@ -235,50 +164,65 @@ export default function DashboardPage() {
           </Card>
         </Grid>
 
-        {/* Manager/Admin Actions */}
-        {['MANAGER', 'ADMIN'].includes(userRole) && (
+        {/* Management Section - Only for Admin/Manager */}
+        {(userRole === 'ADMIN' || userRole === 'MANAGER') && (
           <>
             <Grid item xs={12} md={6}>
-              <Card>
-                <CardContent>
-                  <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
-                    <Assignment sx={{ mr: 1 }} />
-                    Review Recordings
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary" paragraph>
+              <Card sx={{ 
+                height: '100%',
+                display: 'flex',
+                flexDirection: 'column'
+              }}>
+                <CardContent sx={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  flexGrow: 1
+                }}>
+                  <Box display="flex" alignItems="center" gap={2} mb={2}>
+                    <Assessment color="info" />
+                    <Typography variant="h6">Review Recordings</Typography>
+                  </Box>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 3, flexGrow: 1 }}>
                     Review submitted recordings and manage approval status.
                   </Typography>
                   <Button
+                    component={Link}
+                    href="/manage/recordings"
                     variant="outlined"
-                    onClick={() => router.push('/admin/recordings')}
+                    fullWidth
+                    sx={{ minHeight: '40px' }}
                   >
                     Review Queue
                   </Button>
-                  {stats && stats.totalRecordings > stats.approvedRecordings && (
-                    <Chip 
-                      label={`${stats.totalRecordings - stats.approvedRecordings} pending`}
-                      size="small"
-                      color="warning"
-                      sx={{ ml: 1 }}
-                    />
-                  )}
                 </CardContent>
               </Card>
             </Grid>
 
             <Grid item xs={12} md={6}>
-              <Card>
-                <CardContent>
-                  <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
-                    <BarChart sx={{ mr: 1 }} />
-                    Project Analytics
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary" paragraph>
+              <Card sx={{ 
+                height: '100%',
+                display: 'flex',
+                flexDirection: 'column'
+              }}>
+                <CardContent sx={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  flexGrow: 1
+                }}>
+                  <Box display="flex" alignItems="center" gap={2} mb={2}>
+                    <Analytics color="success" />
+                    <Typography variant="h6">Project Analytics</Typography>
+                  </Box>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 3, flexGrow: 1 }}>
                     View detailed project statistics and progress reports.
                   </Typography>
                   <Button
+                    component={Link}
+                    href="/manage/analytics"
                     variant="outlined"
-                    onClick={() => router.push('/admin/analytics')}
+                    color="success"
+                    fullWidth
+                    sx={{ minHeight: '40px' }}
                   >
                     View Analytics
                   </Button>
@@ -288,21 +232,77 @@ export default function DashboardPage() {
           </>
         )}
 
-        {/* Admin-only Actions */}
+        {/* Exhibition Control - Only for Admin/Manager/Gallerist */}
+        {(userRole === 'ADMIN' || userRole === 'MANAGER' || userRole === 'GALLERIST') && (
+          <Grid item xs={12} md={6}>
+            <Card sx={{ 
+              height: '100%',
+              display: 'flex',
+              flexDirection: 'column',
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              color: 'white'
+            }}>
+              <CardContent sx={{
+                display: 'flex',
+                flexDirection: 'column',
+                flexGrow: 1
+              }}>
+                <Box display="flex" alignItems="center" gap={2} mb={2}>
+                  <GraphicEq sx={{ color: 'white' }} />
+                  <Typography variant="h6">Exhibition Control</Typography>
+                </Box>
+                <Typography variant="body2" sx={{ mb: 3, opacity: 0.9, flexGrow: 1 }}>
+                  Manage live gallery audio playback, sound systems, and exhibition settings.
+                </Typography>
+                <Typography variant="caption" sx={{ opacity: 0.8, mb: 2, display: 'block' }}>
+                  Professional gallery audio management
+                </Typography>
+                <Button
+                  component={Link}
+                  href="/exhibition/control"
+                  variant="contained"
+                  fullWidth
+                  sx={{ 
+                    minHeight: '40px',
+                    bgcolor: 'rgba(255,255,255,0.2)', 
+                    color: 'white',
+                    '&:hover': { bgcolor: 'rgba(255,255,255,0.3)' }
+                  }}
+                >
+                  Open Control Center
+                </Button>
+              </CardContent>
+            </Card>
+          </Grid>
+        )}
+
+        {/* Admin Only - User Management */}
         {userRole === 'ADMIN' && (
           <Grid item xs={12} md={6}>
-            <Card>
-              <CardContent>
-                <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
-                  <Person sx={{ mr: 1 }} />
-                  User Management
-                </Typography>
-                <Typography variant="body2" color="text.secondary" paragraph>
+            <Card sx={{ 
+              height: '100%',
+              display: 'flex',
+              flexDirection: 'column'
+            }}>
+              <CardContent sx={{
+                display: 'flex',
+                flexDirection: 'column',
+                flexGrow: 1
+              }}>
+                <Box display="flex" alignItems="center" gap={2} mb={2}>
+                  <People color="warning" />
+                  <Typography variant="h6">User Management</Typography>
+                </Box>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 3, flexGrow: 1 }}>
                   Manage user accounts, roles, and permissions.
                 </Typography>
                 <Button
+                  component={Link}
+                  href="/manage/users"
                   variant="outlined"
-                  onClick={() => router.push('/admin/users')}
+                  color="warning"
+                  fullWidth
+                  sx={{ minHeight: '40px' }}
                 >
                   Manage Users
                 </Button>
@@ -310,48 +310,60 @@ export default function DashboardPage() {
             </Card>
           </Grid>
         )}
-
-        {/* Public Progress Link */}
-        <Grid item xs={12}>
-          <Card sx={{ bgcolor: 'grey.50' }}>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Share Project Progress
-              </Typography>
-              <Typography variant="body2" color="text.secondary" paragraph>
-                View the public progress page that shows the Call My Name Project's current status.
-              </Typography>
-              <Button
-                variant="text"
-                onClick={() => router.push('/observe')}
-                sx={{ mr: 1 }}
-              >
-                View Public Progress
-              </Button>
-              <Button
-                variant="text"
-                onClick={() => {
-                  const url = `${window.location.origin}/observe`;
-                  navigator.clipboard.writeText(url);
-                  // Could add a toast notification here
-                }}
-              >
-                Copy Link
-              </Button>
-            </CardContent>
-          </Card>
-        </Grid>
       </Grid>
 
-      {/* Quick Stats Footer */}
-      {stats && (
-        <Box sx={{ mt: 4, textAlign: 'center' }}>
-          <Typography variant="body2" color="text.secondary">
-            Last updated: {new Date().toLocaleTimeString()} • 
-            {stats.totalPages} pages • {stats.pagesWithRecordings} with recordings
+      {/* Quick Links */}
+      <Card>
+        <CardContent>
+          <Typography variant="h6" gutterBottom>
+            Quick Links
           </Typography>
-        </Box>
-      )}
-    </Box>
-  );
+          <Grid container spacing={2}>
+            <Grid item>
+              <Button
+                component={Link}
+                href="/playback"
+                startIcon={<PlayArrow />}
+                variant="text"
+              >
+                Listen to Recordings
+              </Button>
+            </Grid>
+            <Grid item>
+              <Button
+                component={Link}
+                href="/observe"
+                startIcon={<Visibility />}
+                variant="text"
+              >
+                Project Progress
+              </Button>
+            </Grid>
+            <Grid item>
+              <Button
+                component={Link}
+                href="/dashboard/recordings"
+                startIcon={<DashboardIcon />}
+                variant="text"
+              >
+                My Recordings
+              </Button>
+            </Grid>
+            {(userRole === 'ADMIN' || userRole === 'MANAGER') && (
+              <Grid item>
+                <Button
+                  component={Link}
+                  href="/manage"
+                  startIcon={<Settings />}
+                  variant="text"
+                >
+                  Administration
+                </Button>
+              </Grid>
+            )}
+          </Grid>
+        </CardContent>
+      </Card>
+    </Container>
+  )
 }

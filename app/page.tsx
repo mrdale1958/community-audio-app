@@ -1,7 +1,7 @@
 'use client'
 
 import { Container, Typography, Box, Card, CardContent, Grid, Button } from '@mui/material'
-import { Mic, Upload, PlayArrow, Visibility, Settings } from '@mui/icons-material'
+import { Mic, Upload, PlayArrow, Visibility, Settings, GraphicEq } from '@mui/icons-material'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
@@ -144,6 +144,17 @@ export default function HomePage() {
     })
   }
 
+  // Add Exhibition Control for gallery operators
+  if (userRole === 'ADMIN' || userRole === 'MANAGER' || userRole === 'GALLERIST') {
+    userModes.push({
+      title: 'Exhibition Control',
+      description: 'Gallery audio playback and sound system management',
+      icon: <GraphicEq sx={{ fontSize: 40 }} />,
+      href: '/exhibition/control',
+      color: 'purple'
+    })
+  }
+
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
       <Box textAlign="center" mb={6}>
@@ -160,6 +171,8 @@ export default function HomePage() {
             <Card
               sx={{
                 height: '100%',
+                display: 'flex',        // Add this
+                flexDirection: 'column', // Add this
                 transition: 'transform 0.2s, box-shadow 0.2s',
                 '&:hover': {
                   transform: 'translateY(-4px)',
@@ -167,14 +180,20 @@ export default function HomePage() {
                 }
               }}
             >
-              <CardContent sx={{ textAlign: 'center', p: 3 }}>
+              <CardContent sx={{ 
+                textAlign: 'center', 
+                p: 3,
+                display: 'flex',        // Add this
+                flexDirection: 'column', // Add this
+                flexGrow: 1            // Add this
+              }}>
                 <Box sx={{ color: mode.color, mb: 2 }}>
                   {mode.icon}
                 </Box>
                 <Typography variant="h5" component="h2" gutterBottom>
                   {mode.title}
                 </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 3, flexGrow: 1 }}>
                   {mode.description}
                 </Typography>
                 <Button

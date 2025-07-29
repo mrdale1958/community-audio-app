@@ -1,5 +1,32 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Volume2, VolumeX, Play, Pause, SkipForward, Settings, Mic, Waves } from 'lucide-react';
+"use client";
+
+import React, { useState, useEffect } from 'react';
+import Box from '@mui/material/Box';
+import Paper from '@mui/material/Paper';
+import Typography from '@mui/material/Typography';
+import Grid from '@mui/material/Grid';
+import Button from '@mui/material/Button';
+import Slider from '@mui/material/Slider';
+import Select from '@mui/material/Select';
+import MenuItem from '@mui/material/MenuItem';
+import FormControl from '@mui/material/FormControl';
+import InputLabel from '@mui/material/InputLabel';
+import LinearProgress from '@mui/material/LinearProgress';
+import Chip from '@mui/material/Chip';
+import Card from '@mui/material/Card';
+import CardContent from '@mui/material/CardContent';
+import IconButton from '@mui/material/IconButton';
+import Collapse from '@mui/material/Collapse';
+import {
+  PlayArrow,
+  Pause,
+  SkipNext,
+  Settings,
+  VolumeUp,
+  VolumeOff,
+  Mic,
+  GraphicEq
+} from '@mui/icons-material';
 
 interface AudioChannel {
   id: string;
@@ -23,12 +50,12 @@ interface SoundCheckData {
 
 const GalleryAudioControl = () => {
   const [isPlaying, setIsPlaying] = useState(false);
-  const [masterVolume, setMasterVolume] = useState(0.8);
+  const [masterVolume, setMasterVolume] = useState(80);
   const [channels, setChannels] = useState<AudioChannel[]>([
-    { id: 'main', name: 'Main Gallery', volume: 0.8, muted: false, effects: {} },
-    { id: 'entrance', name: 'Entrance Hall', volume: 0.6, muted: false, effects: {} },
-    { id: 'reflection', name: 'Reflection Space', volume: 0.5, muted: false, effects: { reverb: { type: 'cathedral', wetness: 0.4 } } },
-    { id: 'archive', name: 'Archive Room', volume: 0.7, muted: false, effects: {} }
+    { id: 'main', name: 'Main Gallery', volume: 80, muted: false, effects: {} },
+    { id: 'entrance', name: 'Entrance Hall', volume: 60, muted: false, effects: {} },
+    { id: 'reflection', name: 'Reflection Space', volume: 50, muted: false, effects: { reverb: { type: 'cathedral', wetness: 0.4 } } },
+    { id: 'archive', name: 'Archive Room', volume: 70, muted: false, effects: {} }
   ]);
   const [soundCheck, setSoundCheck] = useState<SoundCheckData>({
     quietestRecording: { recordingId: '', averageDb: -35 },
@@ -36,7 +63,7 @@ const GalleryAudioControl = () => {
     isRunning: false,
     currentPhase: 'idle'
   });
-  const [playbackMode, setPlaybackMode] = useState<'sequential' | 'simultaneous' | 'staggered' | 'call_and_response'>('sequential');
+  const [playbackMode, setPlaybackMode] = useState('sequential');
   const [audioLevels, setAudioLevels] = useState({ left: 0, right: 0, peak: 0 });
   const [showAdvanced, setShowAdvanced] = useState(false);
 
@@ -45,9 +72,9 @@ const GalleryAudioControl = () => {
     if (isPlaying) {
       const interval = setInterval(() => {
         setAudioLevels({
-          left: Math.random() * 0.8,
-          right: Math.random() * 0.8,
-          peak: Math.random() * 0.9
+          left: Math.random() * 80,
+          right: Math.random() * 80,
+          peak: Math.random() * 90
         });
       }, 100);
       return () => clearInterval(interval);
@@ -57,7 +84,6 @@ const GalleryAudioControl = () => {
   const startSoundCheck = async () => {
     setSoundCheck(prev => ({ ...prev, isRunning: true, currentPhase: 'quiet' }));
     
-    // Simulate sound check sequence
     setTimeout(() => {
       setSoundCheck(prev => ({ ...prev, currentPhase: 'loud' }));
     }, 5000);
@@ -83,221 +109,238 @@ const GalleryAudioControl = () => {
     ));
   };
 
-  const AudioLevelMeter = ({ level, peak, label }: { level: number; peak: number; label: string }) => (
-    <div className="flex items-center space-x-2">
-      <span className="text-xs font-medium text-gray-600 w-8">{label}</span>
-      <div className="flex-1 h-3 bg-gray-200 rounded-full overflow-hidden">
-        <div className="h-full flex">
-          <div 
-            className="bg-green-400 transition-all duration-75"
-            style={{ width: `${Math.min(level * 100, 60)}%` }}
-          />
-          <div 
-            className="bg-yellow-400 transition-all duration-75"
-            style={{ width: `${Math.max(0, Math.min((level - 0.6) * 100 / 0.3, 25))}%` }}
-          />
-          <div 
-            className="bg-red-400 transition-all duration-75"
-            style={{ width: `${Math.max(0, (level - 0.85) * 100 / 0.15)}%` }}
-          />
-        </div>
-        {peak > 0.9 && (
-          <div className="absolute right-1 top-0 bottom-0 w-1 bg-red-600 animate-pulse" />
-        )}
-      </div>
-      <span className="text-xs text-gray-500 w-10">{Math.round(level * 100)}%</span>
-    </div>
+  const AudioLevelMeter = ({ level, label }: { level: number; label: string }) => (
+    <Box display="flex" alignItems="center" gap={2} mb={1}>
+      <Typography variant="caption" sx={{ minWidth: 20, fontWeight: 'bold' }}>
+        {label}
+      </Typography>
+      <Box flexGrow={1}>
+        <LinearProgress 
+          variant="determinate" 
+          value={level} 
+          sx={{
+            height: 12,
+            borderRadius: 6,
+            backgroundColor: 'grey.200',
+            '& .MuiLinearProgress-bar': {
+              backgroundColor: level > 85 ? 'error.main' : level > 60 ? 'warning.main' : 'success.main',
+              borderRadius: 6,
+            }
+          }}
+        />
+      </Box>
+      <Typography variant="caption" sx={{ minWidth: 30, textAlign: 'right' }}>
+        {Math.round(level)}%
+      </Typography>
+    </Box>
   );
 
   return (
-    <div className="bg-white rounded-xl shadow-lg p-6 space-y-6">
+    <Paper elevation={3} sx={{ p: 3, maxWidth: 1200, mx: 'auto' }}>
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-3">
-          <Waves className="h-8 w-8 text-indigo-600" />
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900">Gallery Audio Control</h2>
-            <p className="text-gray-600">Exhibition playback management</p>
-          </div>
-        </div>
-        <div className="flex items-center space-x-2">
-          <button
-            onClick={() => setShowAdvanced(!showAdvanced)}
-            className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors"
-          >
-            <Settings className="h-5 w-5 text-gray-600" />
-          </button>
-        </div>
-      </div>
+      <Box display="flex" alignItems="center" justifyContent="space-between" mb={3}>
+        <Box display="flex" alignItems="center" gap={2}>
+          <GraphicEq color="primary" sx={{ fontSize: 32 }} />
+          <Box>
+            <Typography variant="h4" component="h2" fontWeight="bold">
+              Gallery Audio Control
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Exhibition playback management
+            </Typography>
+          </Box>
+        </Box>
+        <IconButton onClick={() => setShowAdvanced(!showAdvanced)}>
+          <Settings />
+        </IconButton>
+      </Box>
 
-      {/* Main Controls */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <Grid container spacing={3}>
         {/* Playback Controls */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold text-gray-900">Playback Control</h3>
-          
-          <div className="flex items-center space-x-4">
-            <button
-              onClick={() => setIsPlaying(!isPlaying)}
-              className={`p-3 rounded-full transition-colors ${
-                isPlaying 
-                  ? 'bg-red-100 text-red-600 hover:bg-red-200' 
-                  : 'bg-green-100 text-green-600 hover:bg-green-200'
-              }`}
-            >
-              {isPlaying ? <Pause className="h-6 w-6" /> : <Play className="h-6 w-6" />}
-            </button>
-            
-            <button className="p-3 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors">
-              <SkipForward className="h-6 w-6" />
-            </button>
-            
-            <div className="flex-1">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Master Volume</label>
-              <input
-                type="range"
-                min="0"
-                max="1"
-                step="0.01"
-                value={masterVolume}
-                onChange={(e) => setMasterVolume(parseFloat(e.target.value))}
-                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
-              />
-            </div>
-          </div>
+        <Grid item xs={12} md={6}>
+          <Card>
+            <CardContent>
+              <Typography variant="h6" gutterBottom>
+                Playback Control
+              </Typography>
+              
+              <Box display="flex" alignItems="center" gap={2} mb={3}>
+                <IconButton
+                  onClick={() => setIsPlaying(!isPlaying)}
+                  color={isPlaying ? "error" : "success"}
+                  size="large"
+                  sx={{ p: 2 }}
+                >
+                  {isPlaying ? <Pause sx={{ fontSize: 32 }} /> : <PlayArrow sx={{ fontSize: 32 }} />}
+                </IconButton>
+                
+                <IconButton size="large">
+                  <SkipNext sx={{ fontSize: 32 }} />
+                </IconButton>
+                
+                <Box flexGrow={1} ml={2}>
+                  <Typography variant="body2" gutterBottom>
+                    Master Volume
+                  </Typography>
+                  <Slider
+                    value={masterVolume}
+                    onChange={(_, value) => setMasterVolume(value as number)}
+                    valueLabelDisplay="auto"
+                    max={100}
+                  />
+                </Box>
+              </Box>
 
-          {/* Playback Mode */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Playback Mode</label>
-            <select
-              value={playbackMode}
-              onChange={(e) => setPlaybackMode(e.target.value as any)}
-              className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-            >
-              <option value="sequential">Sequential</option>
-              <option value="simultaneous">Simultaneous</option>
-              <option value="staggered">Staggered Entry</option>
-              <option value="call_and_response">Call & Response</option>
-            </select>
-          </div>
-        </div>
+              <FormControl fullWidth>
+                <InputLabel>Playback Mode</InputLabel>
+                <Select
+                  value={playbackMode}
+                  label="Playback Mode"
+                  onChange={(e) => setPlaybackMode(e.target.value)}
+                >
+                  <MenuItem value="sequential">Sequential</MenuItem>
+                  <MenuItem value="simultaneous">Simultaneous</MenuItem>
+                  <MenuItem value="staggered">Staggered Entry</MenuItem>
+                  <MenuItem value="call_and_response">Call & Response</MenuItem>
+                </Select>
+              </FormControl>
+            </CardContent>
+          </Card>
+        </Grid>
 
         {/* Sound Check */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold text-gray-900">Sound Check</h3>
-          
-          <div className="bg-gray-50 rounded-lg p-4 space-y-3">
-            <div className="flex justify-between items-center">
-              <span className="text-sm font-medium text-gray-700">Quietest Recording:</span>
-              <span className="text-sm text-gray-600">{soundCheck.quietestRecording.averageDb} dB</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-sm font-medium text-gray-700">Loudest Recording:</span>
-              <span className="text-sm text-gray-600">{soundCheck.loudestRecording.averageDb} dB</span>
-            </div>
-            
-            {soundCheck.isRunning && (
-              <div className="text-center py-2">
-                <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-                  soundCheck.currentPhase === 'quiet' 
-                    ? 'bg-blue-100 text-blue-800' 
-                    : 'bg-orange-100 text-orange-800'
-                }`}>
-                  <Mic className="h-4 w-4 mr-1" />
-                  Testing {soundCheck.currentPhase} levels
-                </div>
-              </div>
-            )}
-            
-            <button
-              onClick={startSoundCheck}
-              disabled={soundCheck.isRunning}
-              className="w-full py-2 px-4 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              {soundCheck.isRunning ? 'Running Sound Check...' : 'Start Sound Check'}
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Audio Level Meters */}
-      {isPlaying && (
-        <div className="space-y-3">
-          <h3 className="text-lg font-semibold text-gray-900">Audio Levels</h3>
-          <div className="bg-gray-50 rounded-lg p-4 space-y-2">
-            <AudioLevelMeter level={audioLevels.left} peak={audioLevels.peak} label="L" />
-            <AudioLevelMeter level={audioLevels.right} peak={audioLevels.peak} label="R" />
-            <AudioLevelMeter level={audioLevels.peak} peak={audioLevels.peak} label="Peak" />
-          </div>
-        </div>
-      )}
-
-      {/* Channel Controls */}
-      <div className="space-y-4">
-        <h3 className="text-lg font-semibold text-gray-900">Channel Zones</h3>
-        <div className="grid gap-4">
-          {channels.map((channel) => (
-            <div key={channel.id} className="bg-gray-50 rounded-lg p-4">
-              <div className="flex items-center justify-between mb-3">
-                <h4 className="font-medium text-gray-900">{channel.name}</h4>
-                <button
-                  onClick={() => toggleChannelMute(channel.id)}
-                  className={`p-2 rounded-full transition-colors ${
-                    channel.muted 
-                      ? 'bg-red-100 text-red-600' 
-                      : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
-                  }`}
-                >
-                  {channel.muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
-                </button>
-              </div>
+        <Grid item xs={12} md={6}>
+          <Card>
+            <CardContent>
+              <Typography variant="h6" gutterBottom>
+                Sound Check
+              </Typography>
               
-              <div className="flex items-center space-x-4">
-                <span className="text-sm font-medium text-gray-700 w-16">Volume</span>
-                <input
-                  type="range"
-                  min="0"
-                  max="1"
-                  step="0.01"
-                  value={channel.volume}
-                  onChange={(e) => updateChannelVolume(channel.id, parseFloat(e.target.value))}
-                  className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
-                  disabled={channel.muted}
-                />
-                <span className="text-sm text-gray-600 w-10">{Math.round(channel.volume * 100)}%</span>
-              </div>
+              <Box bgcolor="grey.50" borderRadius={2} p={2} mb={2}>
+                <Box display="flex" justifyContent="space-between" mb={1}>
+                  <Typography variant="body2">Quietest Recording:</Typography>
+                  <Typography variant="body2" fontWeight="bold">
+                    {soundCheck.quietestRecording.averageDb} dB
+                  </Typography>
+                </Box>
+                <Box display="flex" justifyContent="space-between" mb={2}>
+                  <Typography variant="body2">Loudest Recording:</Typography>
+                  <Typography variant="body2" fontWeight="bold">
+                    {soundCheck.loudestRecording.averageDb} dB
+                  </Typography>
+                </Box>
+                
+                {soundCheck.isRunning && (
+                  <Box textAlign="center" mb={2}>
+                    <Chip
+                      icon={<Mic />}
+                      label={`Testing ${soundCheck.currentPhase} levels`}
+                      color={soundCheck.currentPhase === 'quiet' ? 'info' : 'warning'}
+                      variant="outlined"
+                    />
+                  </Box>
+                )}
+                
+                <Button
+                  onClick={startSoundCheck}
+                  disabled={soundCheck.isRunning}
+                  variant="contained"
+                  fullWidth
+                >
+                  {soundCheck.isRunning ? 'Running Sound Check...' : 'Start Sound Check'}
+                </Button>
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
 
-              {showAdvanced && (
-                <div className="mt-3 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600">Reverb</span>
-                    <span className="text-xs text-gray-500">
-                      {channel.effects.reverb ? `${channel.effects.reverb.type} (${Math.round(channel.effects.reverb.wetness * 100)}%)` : 'Off'}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600">Compression</span>
-                    <span className="text-xs text-gray-500">{channel.effects.compression ? 'On' : 'Off'}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600">EQ</span>
-                    <span className="text-xs text-gray-500">{channel.effects.eq ? 'Custom' : 'Flat'}</span>
-                  </div>
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
+        {/* Audio Level Meters */}
+        {isPlaying && (
+          <Grid item xs={12}>
+            <Card>
+              <CardContent>
+                <Typography variant="h6" gutterBottom>
+                  Audio Levels
+                </Typography>
+                <AudioLevelMeter level={audioLevels.left} label="L" />
+                <AudioLevelMeter level={audioLevels.right} label="R" />
+                <AudioLevelMeter level={audioLevels.peak} label="Peak" />
+              </CardContent>
+            </Card>
+          </Grid>
+        )}
+
+        {/* Channel Controls */}
+        <Grid item xs={12}>
+          <Card>
+            <CardContent>
+              <Typography variant="h6" gutterBottom>
+                Channel Zones
+              </Typography>
+              <Grid container spacing={2}>
+                {channels.map((channel) => (
+                  <Grid item xs={12} sm={6} key={channel.id}>
+                    <Paper variant="outlined" sx={{ p: 2 }}>
+                      <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>
+                        <Typography variant="subtitle1" fontWeight="bold">
+                          {channel.name}
+                        </Typography>
+                        <IconButton
+                          onClick={() => toggleChannelMute(channel.id)}
+                          color={channel.muted ? "error" : "default"}
+                        >
+                          {channel.muted ? <VolumeOff /> : <VolumeUp />}
+                        </IconButton>
+                      </Box>
+                      
+                      <Typography variant="body2" gutterBottom>
+                        Volume: {channel.volume}%
+                      </Typography>
+                      <Slider
+                        value={channel.volume}
+                        onChange={(_, value) => updateChannelVolume(channel.id, value as number)}
+                        disabled={channel.muted}
+                        max={100}
+                        size="small"
+                      />
+
+                      <Collapse in={showAdvanced}>
+                        <Box mt={2} pt={2} borderTop={1} borderColor="grey.200">
+                          <Typography variant="caption" display="block" gutterBottom>
+                            Effects:
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary" display="block">
+                            Reverb: {channel.effects.reverb ? `${channel.effects.reverb.type} (${Math.round(channel.effects.reverb.wetness * 100)}%)` : 'Off'}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary" display="block">
+                            Compression: {channel.effects.compression ? 'On' : 'Off'}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary" display="block">
+                            EQ: {channel.effects.eq ? 'Custom' : 'Flat'}
+                          </Typography>
+                        </Box>
+                      </Collapse>
+                    </Paper>
+                  </Grid>
+                ))}
+              </Grid>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
 
       {/* Status */}
-      <div className="border-t pt-4">
-        <div className="flex items-center justify-between text-sm text-gray-600">
-          <span>Status: {isPlaying ? 'Playing' : 'Stopped'} • Mode: {playbackMode}</span>
-          <span>Queue: 1,247 recordings • Next in 2:45</span>
-        </div>
-      </div>
-    </div>
+      <Box borderTop={1} borderColor="grey.200" pt={2} mt={3}>
+        <Box display="flex" justifyContent="space-between" alignItems="center">
+          <Typography variant="body2" color="text.secondary">
+            Status: {isPlaying ? 'Playing' : 'Stopped'} • Mode: {playbackMode}
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Queue: 1,247 recordings • Next in 2:45
+          </Typography>
+        </Box>
+      </Box>
+    </Paper>
   );
 };
 
