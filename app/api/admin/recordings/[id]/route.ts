@@ -35,7 +35,7 @@ export async function PATCH(
       select: {
         id: true,
         status: true,
-        originalName: true
+        originalFilename: true
       }
     })
 

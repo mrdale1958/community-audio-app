@@ -1,11 +1,11 @@
 export interface Recording {
   id: string;
-  fileName: string;
+  filename: string;
   title: string;
   filePath: string;
-  fileSize: number;
+  filesize: number;
   duration: number | null;
-  mimeType: string;
+  mimetype: string;
   status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'PROCESSING';
   recordingMethod: 'LIVE' | 'UPLOAD';
   createdAt: string;

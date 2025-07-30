@@ -65,7 +65,7 @@ export function RecordingDetailsDialog({
                 Original Name
               </Typography>
               <Typography variant="body1" gutterBottom>
-                {recording.originalName}
+                {recording.originalFilename}
               </Typography>
             </Grid>
             
@@ -135,7 +135,7 @@ export function RecordingDetailsDialog({
                 File Size
               </Typography>
               <Typography variant="body1" gutterBottom>
-                {formatFileSize(recording.fileSize)}
+                {formatFileSize(recording.filesize)}
               </Typography>
             </Grid>
             

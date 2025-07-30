@@ -65,10 +65,10 @@ export function isValidPlaybackItemType(type: string): type is PlaybackItemType 
 
 // Helper function to check if user can control exhibitions
 export function canControlExhibitions(role: UserRole): boolean {
-  return [UserRole.GALLERIST, UserRole.ADMIN, UserRole.MANAGER].includes(role);
+  return ['GALLERIST', 'ADMIN', 'MANAGER'].includes(role);
 }
 
 // Helper function to check if user can view exhibitions
 export function canViewExhibitions(role: UserRole): boolean {
-  return [UserRole.GALLERIST, UserRole.ADMIN, UserRole.MANAGER, UserRole.OBSERVER].includes(role);
+  return ['GALLERIST', 'ADMIN', 'MANAGER', 'OBSERVER'].includes(role);
 }

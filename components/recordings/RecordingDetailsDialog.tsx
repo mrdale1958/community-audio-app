@@ -45,7 +45,7 @@ export const RecordingDetailsDialog = ({
               <Typography gutterBottom>{recording.recordingMethod}</Typography>
               
               <Typography variant="subtitle2" gutterBottom>File Size</Typography>
-              <Typography gutterBottom>{formatFileSize(recording.fileSize)}</Typography>
+              <Typography gutterBottom>{formatFileSize(recording.filesize)}</Typography>
             </Grid>
             
             <Grid item xs={12} md={6}>

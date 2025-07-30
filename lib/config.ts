@@ -26,7 +26,8 @@ export const CONFIG = {
     MAX_PAGES_PER_SERIES: 10000,
     MAX_PAGES: 10000,
     NAMES_PER_PAGE: 50,
-    DEFAULT_NAMES_PER_PAGE: 50
+    DEFAULT_NAMES_PER_PAGE: 50,
+    PAGE_NUMBER_PREFIX: "Page",
   },
   
   // Exhibition settings
@@ -71,7 +72,13 @@ export const CONFIG = {
   AUDIO_ANALYSIS_TIMEOUT: 60000, // 1 minute per file
   MIN_AUDIO_DURATION: 10, // seconds
   MAX_AUDIO_DURATION: 3600, // 1 hour
-
+  EXHIBITION: {
+    TARGET_RECORDINGS: 5000,
+    MIN_DURATION: 30, // seconds
+    MAX_DURATION: 300, // 5 minutes
+    DEFAULT_QUEUE_SIZE: 100,
+    PLAYBACK_INTERVAL: 2000, // milliseconds between recordings
+  },
 } as const;
 
 // Helper functions
@@ -94,7 +101,7 @@ export function formatDuration(seconds: number): string {
   return `${minutes}:${secs.toString().padStart(2, '0')}`;
 }
 
-export function isValidAudioType(mimeType: string): boolean {
+export function isValidAudioType(mimetype: string): boolean {
   return CONFIG.SUPPORTED_AUDIO_TYPES.includes(mimeType);
 }
 
@@ -135,3 +142,34 @@ export function isGalleryOpen(date: Date, galleryHours: Array<{day: number, open
   
   return timeString >= dayHours.open && timeString <= dayHours.close;
 }
+
+export const ValidationHelpers = {
+  isValidId: (id: string) => typeof id === 'string' && id.length > 0,
+  isValidNamesPage: (names: string[]) => {
+    return Array.isArray(names) && 
+           names.length > 0 && 
+           names.every(name => typeof name === 'string' && name.trim().length > 0);
+  },
+}
+
+export const PageHelpers = {
+  formatPageNumber: (pageNum: number) => `Page ${pageNum}`,
+  calculateTotalPages: (totalNames: number, namesPerPage: number) => Math.ceil(totalNames / namesPerPage),
+  validatePageRange: (pageNum: number, totalPages: number) => pageNum >= 1 && pageNum <= totalPages,
+  isValidPageNumber: (pageNum: number) => {
+    return Number.isInteger(pageNum) && pageNum >= 1 && pageNum <= 1000; // or whatever your max page limit is
+  },}
+export const AudioHelpers = {
+  isValidAudioFile: (file: File) => {
+    return file && file.size > 0 && 
+           CONFIG.SUPPORTED_AUDIO_TYPES.includes(file.type) && 
+           file.size <= CONFIG.MAX_FILE_SIZE;
+  },
+  getAudioDuration: (audioBlob: Blob): Promise<number> => {
+    return new Promise((resolve, reject) => {
+      const audio = new Audio(URL.createObjectURL(audioBlob));
+      audio.onloadedmetadata = () => resolve(audio.duration);
+      audio.onerror = () => reject(new Error('Failed to load audio metadata'));
+    });
+  }
+};

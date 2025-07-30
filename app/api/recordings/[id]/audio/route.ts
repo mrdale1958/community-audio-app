@@ -17,7 +17,7 @@ export async function GET(
         id: true,
         filename: true,
         status: true,
-        mimeType: true
+        mimetype: true
       }
     })
 
@@ -52,7 +52,7 @@ export async function GET(
 
     // Get file stats
     const stats = statSync(filePath)
-    const fileSize = stats.size
+    const filesize = stats.size
 
     // Handle range requests for audio streaming
     const range = request.headers.get('range')
@@ -61,7 +61,7 @@ export async function GET(
       // Parse range header
       const parts = range.replace(/bytes=/, '').split('-')
       const start = parseInt(parts[0], 10)
-      const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1
+      const end = parts[1] ? parseInt(parts[1], 10) : filesize - 1
       const chunkSize = (end - start) + 1
 
       // Create read stream for the requested range
@@ -89,10 +89,10 @@ export async function GET(
       return new NextResponse(readableStream, {
         status: 206, // Partial Content
         headers: {
-          'Content-Range': `bytes ${start}-${end}/${fileSize}`,
+          'Content-Range': `bytes ${start}-${end}/${filesize}`,
           'Accept-Ranges': 'bytes',
           'Content-Length': chunkSize.toString(),
-          'Content-Type': recording.mimeType || 'audio/mpeg',
+          'Content-Type': recording.mimetype || 'audio/mpeg',
           'Cache-Control': 'public, max-age=3600'
         }
       })
@@ -121,8 +121,8 @@ export async function GET(
 
       return new NextResponse(readableStream, {
         headers: {
-          'Content-Type': recording.mimeType || 'audio/mpeg',
-          'Content-Length': fileSize.toString(),
+          'Content-Type': recording.mimetype || 'audio/mpeg',
+          'Content-Length': filesize.toString(),
           'Accept-Ranges': 'bytes',
           'Cache-Control': 'public, max-age=3600'
         }

@@ -63,10 +63,10 @@ export async function POST(request: NextRequest) {
     const recording = await prisma.recording.create({
       data: {
         filename,
-        originalName: audioFile.name,
-        fileSize: audioFile.size,
+        originalFilename: audioFile.name,
+        filesize: audioFile.size,
         duration: duration ? parseInt(duration) : null,
-        mimeType: audioFile.type,
+        mimetype: audioFile.type,
         method,
         status: 'PENDING',
         userId: session.user.id,

@@ -77,7 +77,7 @@ export const RecordingCard = ({
         Duration: {formatDuration(recording.duration)}
       </Typography>
       <Typography variant="body2" color="text.secondary" gutterBottom>
-        Size: {formatFileSize(recording.fileSize)}
+        Size: {formatFileSize(recording.filesize)}
       </Typography>
       <Typography variant="body2" color="text.secondary">
         {formatTimeAgo(recording.createdAt)}

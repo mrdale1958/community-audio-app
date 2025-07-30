@@ -84,7 +84,7 @@ export function RecordingsTab({
   const filteredRecordings = recordings.filter(recording => {
     const matchesStatus = statusFilter === 'ALL' || recording.status === statusFilter
     const matchesSearch = !searchQuery || 
-      recording.originalName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      recording.originalFilename.toLowerCase().includes(searchQuery.toLowerCase()) ||
       recording.nameList.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       recording.user.name.toLowerCase().includes(searchQuery.toLowerCase())
     
@@ -154,7 +154,7 @@ export function RecordingsTab({
                     </IconButton>
                     <Box>
                       <Typography variant="body2" fontWeight="medium" noWrap>
-                        {recording.originalName}
+                        {recording.originalFilename}
                       </Typography>
                       <Typography variant="caption" color="text.secondary" noWrap>
                         {recording.filename}
@@ -199,7 +199,7 @@ export function RecordingsTab({
                 </TableCell>
                 <TableCell>
                   <Typography variant="body2">
-                    {formatFileSize(recording.fileSize)}
+                    {formatFileSize(recording.filesize)}
                   </Typography>
                 </TableCell>
                 <TableCell>

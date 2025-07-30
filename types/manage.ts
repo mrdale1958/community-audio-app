@@ -2,8 +2,8 @@
 export interface Recording {
   id: string
   filename: string
-  originalName: string
-  fileSize: number
+  originalFilename: string
+  filesize: number
   duration: number | null
   status: 'PENDING' | 'APPROVED' | 'REJECTED'
   method: 'LIVE' | 'UPLOAD'

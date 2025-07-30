@@ -1,24 +1,17 @@
-// ecosystem.config.js
 module.exports = {
   apps: [{
-    name: 'read-my-name',
+    name: 'readmyname',
     script: 'npm',
     args: 'start',
-    cwd: '/var/www/read-my-name',
-    instances: 'max',
-    exec_mode: 'cluster',
+    cwd: '/opt/readmyname/community-audio-app',
     env: {
       NODE_ENV: 'production',
       PORT: 3000
     },
-    env_production: {
-      NODE_ENV: 'production',
-      PORT: 3000
-    },
-    error_file: '/var/log/read-my-name/error.log',
-    out_file: '/var/log/read-my-name/out.log',
-    log_file: '/var/log/read-my-name/combined.log',
-    time: true,
-    max_memory_restart: '1G'
+    instances: 1,
+    autorestart: true,
+    watch: false,
+    max_memory_restart: '500M',
+    log_date_format: 'YYYY-MM-DD HH:mm Z'
   }]
 };

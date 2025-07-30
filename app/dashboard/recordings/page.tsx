@@ -49,10 +49,10 @@ import {
 interface Recording {
   id: string
   filename: string
-  originalName: string
-  fileSize: number
+  originalFilename: string
+  filesize: number
   duration: number | null
-  mimeType: string
+  mimetype: string
   status: 'PENDING' | 'APPROVED' | 'REJECTED'
   method: 'LIVE' | 'UPLOAD'
   createdAt: string
@@ -146,7 +146,7 @@ export default function DashboardRecordingsPage() {
     if (searchQuery) {
       const query = searchQuery.toLowerCase()
       filtered = filtered.filter(r => 
-        r.originalName.toLowerCase().includes(query) ||
+        r.originalFilename.toLowerCase().includes(query) ||
         r.nameList.title.toLowerCase().includes(query)
       )
     }
@@ -199,7 +199,7 @@ export default function DashboardRecordingsPage() {
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = recording.originalName || recording.filename
+      a.download = recording.originalFilename || recording.filename
       document.body.appendChild(a)
       a.click()
       document.body.removeChild(a)
@@ -381,7 +381,7 @@ export default function DashboardRecordingsPage() {
           <Card>
             <CardContent sx={{ textAlign: 'center' }}>
               <Typography variant="h3" color="info.main">
-                {Array.isArray(recordings) ? formatFileSize(recordings.reduce((acc, r) => acc + r.fileSize, 0)) : '0 Bytes'}
+                {Array.isArray(recordings) ? formatFileSize(recordings.reduce((acc, r) => acc + r.filesize, 0)) : '0 Bytes'}
               </Typography>
               <Typography variant="body2" color="text.secondary">
                 Total Size
@@ -485,7 +485,7 @@ export default function DashboardRecordingsPage() {
                   <TableRow key={recording.id} hover>
                     <TableCell>
                       <Typography variant="body2" fontWeight="medium">
-                        {recording.originalName}
+                        {recording.originalFilename}
                       </Typography>
                       <Typography variant="caption" color="text.secondary">
                         {recording.filename}
@@ -518,7 +518,7 @@ export default function DashboardRecordingsPage() {
                     </TableCell>
                     <TableCell>
                       <Typography variant="body2">
-                        {formatFileSize(recording.fileSize)}
+                        {formatFileSize(recording.filesize)}
                       </Typography>
                     </TableCell>
                     <TableCell>
@@ -587,7 +587,7 @@ export default function DashboardRecordingsPage() {
         <DialogTitle>Delete Recording</DialogTitle>
         <DialogContent>
           <Typography>
-            Are you sure you want to delete "{recordingToDelete?.originalName}"?
+            Are you sure you want to delete "{recordingToDelete?.originalFilename}"?
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
             This action cannot be undone.
@@ -608,7 +608,7 @@ export default function DashboardRecordingsPage() {
           {selectedRecording && (
             <Box>
               <Typography variant="h6" gutterBottom>
-                {selectedRecording.originalName}
+                {selectedRecording.originalFilename}
               </Typography>
               <Grid container spacing={2}>
                 <Grid item xs={6}>
@@ -650,7 +650,7 @@ export default function DashboardRecordingsPage() {
                     File Size:
                   </Typography>
                   <Typography variant="body2">
-                    {formatFileSize(selectedRecording.fileSize)}
+                    {formatFileSize(selectedRecording.filesize)}
                   </Typography>
                 </Grid>
                 <Grid item xs={6}>
@@ -658,7 +658,7 @@ export default function DashboardRecordingsPage() {
                     Format:
                   </Typography>
                   <Typography variant="body2">
-                    {selectedRecording.mimeType}
+                    {selectedRecording.mimetype}
                   </Typography>
                 </Grid>
                 <Grid item xs={12}>

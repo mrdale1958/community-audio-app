@@ -129,7 +129,7 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      const totalPages = PageHelpers.calculateTotalPages(names.length);
+      const totalPages = PageHelpers.calculateTotalPages(names.length,CONFIG.PAGE.NAMES_PER_PAGE);
       if (totalPages > CONFIG.PAGE.MAX_PAGES) {
         return NextResponse.json(
           { error: `Too many names. Maximum ${CONFIG.PAGE.MAX_PAGES} pages allowed (${CONFIG.PAGE.MAX_PAGES * CONFIG.PAGE.NAMES_PER_PAGE} names)` },

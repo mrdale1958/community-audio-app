@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
       prisma.recording.aggregate({
         _sum: {
           duration: true,
-          fileSize: true
+          filesize: true
         }
       })
     ])
@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
       totalUsers,
       totalNameLists,
       totalDuration: recordingStats._sum.duration || 0,
-      totalFileSize: recordingStats._sum.fileSize || 0
+      totalFileSize: recordingStats._sum.filesize || 0
     }
 
     return NextResponse.json(stats)

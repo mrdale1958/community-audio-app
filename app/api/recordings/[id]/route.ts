@@ -77,7 +77,7 @@ export async function DELETE(
 
     // Delete the file from filesystem
     try {
-      const filePath = join(process.cwd(), 'uploads', recording.fileName);
+      const filePath = join(process.cwd(), 'uploads', recording.filename);
       await unlink(filePath);
     } catch (fileError) {
       console.warn('Could not delete file:', fileError);

@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
     let whereClause: any = {};
 
     // GALLERIST can only see their own exhibitions
-    if (session.user.role === UserRole.GALLERIST) {
+    if (session.user.role === 'GALLERIST') {
       whereClause.galleristId = session.user.id;
     }
 
@@ -35,7 +35,9 @@ export async function GET(request: NextRequest) {
     }
 
     // For non-authenticated users (observers), only show upcoming public exhibitions
-    if (![UserRole.ADMIN, UserRole.GALLERIST, UserRole.MANAGER].includes(session.user.role as UserRole)) {
+
+    const allowedRoles: UserRole[] = ['ADMIN', 'GALLERIST', 'MANAGER'];
+    if (!allowedRoles.includes(session.user.role as UserRole)) {
       whereClause = {
         ...whereClause,
         startDate: {
@@ -98,7 +100,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Only ADMIN and GALLERIST can create exhibitions
-    if (![UserRole.ADMIN, UserRole.GALLERIST].includes(session.user.role as UserRole)) {
+    if (!session.user.role || !['ADMIN', 'GALLERIST'].includes(session.user.role)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
@@ -136,7 +138,7 @@ export async function POST(request: NextRequest) {
     }
 
     // GALLERIST can only create exhibitions for themselves
-    const finalGalleristId = session.user.role === UserRole.GALLERIST 
+    const finalGalleristId = session.user.role === 'GALLERIST' 
       ? session.user.id 
       : galleristId || session.user.id;
 
@@ -145,7 +147,7 @@ export async function POST(request: NextRequest) {
       where: { id: finalGalleristId }
     });
 
-    if (!gallerist || ![UserRole.GALLERIST, UserRole.ADMIN].includes(gallerist.role as UserRole)) {
+    if (!gallerist || !['GALLERIST', 'ADMIN'].includes(gallerist.role as UserRole)) {
       return NextResponse.json({ 
         error: 'Invalid gallerist ID or user is not a gallerist' 
       }, { status: 400 });

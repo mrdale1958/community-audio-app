@@ -48,8 +48,8 @@ import {
 interface Recording {
   id: string
   filename: string
-  originalName: string
-  fileSize: number
+  originalFilename: string
+  filesize: number
   duration: number | null
   method: 'LIVE' | 'UPLOAD'
   createdAt: string
@@ -162,7 +162,7 @@ export default function PlaybackPage() {
     if (searchQuery) {
       const query = searchQuery.toLowerCase()
       filtered = filtered.filter(r => 
-        r.originalName.toLowerCase().includes(query) ||
+        r.originalFilename.toLowerCase().includes(query) ||
         r.nameList.title.toLowerCase().includes(query) ||
         r.user.name.toLowerCase().includes(query)
       )

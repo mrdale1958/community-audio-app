@@ -11,8 +11,8 @@ export async function GET(request: NextRequest) {
       select: {
         id: true,
         filename: true,
-        originalName: true,
-        fileSize: true,
+        originalFilename: true,
+        filesize: true,
         duration: true,
         method: true,
         createdAt: true,

@@ -20,13 +20,13 @@ async function main() {
     {
       email: 'contributor1@example.com',
       name: 'Alice Contributor',
-      role: UserRole.CONTRIBUTOR,
+      role: 'CONTRIBUTOR',
       password: hashedPassword
     },
     {
       email: 'contributor2@example.com',
       name: 'Bob Contributor',
-      role: UserRole.CONTRIBUTOR,
+      role: 'CONTRIBUTOR',
       password: hashedPassword
     },
     
@@ -34,13 +34,13 @@ async function main() {
     {
       email: 'manager1@example.com',
       name: 'Carol Manager',
-      role: UserRole.MANAGER,
+      role: 'MANAGER',
       password: hashedPassword
     },
     {
       email: 'manager2@example.com',
       name: 'David Manager',
-      role: UserRole.MANAGER,
+      role: 'MANAGER',
       password: hashedPassword
     },
     
@@ -48,13 +48,13 @@ async function main() {
     {
       email: 'observer1@example.com',
       name: 'Eve Observer',
-      role: UserRole.OBSERVER,
+      role: 'OBSERVER',
       password: hashedPassword
     },
     {
       email: 'observer2@example.com',
       name: 'Frank Observer',
-      role: UserRole.OBSERVER,
+      role: 'OBSERVER',
       password: hashedPassword
     },
     
@@ -62,13 +62,13 @@ async function main() {
     {
       email: 'gallerist1@example.com',
       name: 'Grace Gallerist',
-      role: UserRole.GALLERIST,
+      role: 'GALLERIST',
       password: hashedPassword
     },
     {
       email: 'gallerist2@example.com',
       name: 'Henry Gallerist',
-      role: UserRole.GALLERIST,
+      role: 'GALLERIST',
       password: hashedPassword
     },
     
@@ -76,13 +76,13 @@ async function main() {
     {
       email: 'admin1@example.com',
       name: 'Iris Admin',
-      role: UserRole.ADMIN,
+      role: 'ADMIN',
       password: hashedPassword
     },
     {
       email: 'admin2@example.com',
       name: 'Jack Admin',
-      role: UserRole.ADMIN,
+      role: 'ADMIN',
       password: hashedPassword
     }
   ];

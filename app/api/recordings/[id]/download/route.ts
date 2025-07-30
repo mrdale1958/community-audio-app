@@ -28,7 +28,7 @@ export async function GET(
       return NextResponse.json({ error: 'Recording not found' }, { status: 404 });
     }
 
-    const filePath = join(process.cwd(), 'uploads', recording.fileName);
+    const filePath = join(process.cwd(), 'uploads', recording.filename);
     
     if (!existsSync(filePath)) {
       return NextResponse.json({ error: 'Audio file not found' }, { status: 404 });
@@ -39,7 +39,7 @@ export async function GET(
     return new NextResponse(stream as any, {
       headers: {
         'Content-Type': 'application/octet-stream',
-        'Content-Disposition': `attachment; filename="${recording.title}"`,
+        'Content-Disposition': `attachment; filename="${recording.originalFilename}"`,
       },
     });
   } catch (error) {
