@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, Suspense } from 'react'
 import { signIn, getSession } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import {
@@ -12,12 +12,14 @@ import {
   Box,
   Alert,
   Divider,
-  Link as MuiLink
+  Link as MuiLink,
+  CircularProgress
 } from '@mui/material'
 import { Login } from '@mui/icons-material'
 import Link from 'next/link'
 
-export default function SignInPage() {
+// Extract the component that uses useSearchParams
+function SignInForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const callbackUrl = searchParams.get('callbackUrl') || '/dashboard'
@@ -155,5 +157,35 @@ export default function SignInPage() {
         </Paper>
       </Box>
     </Container>
+  )
+}
+
+// Loading fallback component
+function SignInLoading() {
+  return (
+    <Container component="main" maxWidth="sm">
+      <Box
+        sx={{
+          marginTop: 8,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+        }}
+      >
+        <Paper elevation={3} sx={{ padding: 4, width: '100%', textAlign: 'center' }}>
+          <CircularProgress sx={{ mb: 2 }} />
+          <Typography>Loading sign in form...</Typography>
+        </Paper>
+      </Box>
+    </Container>
+  )
+}
+
+// Main page component wrapped in Suspense
+export default function SignInPage() {
+  return (
+    <Suspense fallback={<SignInLoading />}>
+      <SignInForm />
+    </Suspense>
   )
 }

@@ -14,9 +14,10 @@ import {
   Divider,
   Link as MuiLink,
   FormControl,
-  InputLabel,
-  Select,
-  MenuItem
+  FormLabel,
+  RadioGroup,
+  FormControlLabel,
+  Radio
 } from '@mui/material'
 import { PersonAdd } from '@mui/icons-material'
 import Link from 'next/link'
@@ -220,20 +221,47 @@ export default function SignUpPage() {
               disabled={loading}
             />
 
-            <FormControl fullWidth margin="normal">
-              <InputLabel id="role-label">Role</InputLabel>
-              <Select
-                labelId="role-label"
-                id="role"
+            <FormControl component="fieldset" fullWidth margin="normal">
+              <FormLabel component="legend" sx={{ mb: 1 }}>
+                <Typography variant="subtitle1" fontWeight="medium">
+                  How would you like to participate?
+                </Typography>
+              </FormLabel>
+              <RadioGroup
                 name="role"
                 value={formData.role}
-                label="Role"
-                onChange={(e) => setFormData(prev => ({ ...prev, role: e.target.value }))}
-                disabled={loading}
+                onChange={handleChange}
+                sx={{ ml: 1 }}
               >
-                <MenuItem value="CONTRIBUTOR">Contributor</MenuItem>
-                <MenuItem value="OBSERVER">Observer</MenuItem>
-              </Select>
+                <FormControlLabel
+                  value="CONTRIBUTOR"
+                  control={<Radio disabled={loading} />}
+                  label={
+                    <Box>
+                      <Typography variant="body1" fontWeight="medium">
+                        Contributor
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Record audio of name pages for the exhibition
+                      </Typography>
+                    </Box>
+                  }
+                />
+                <FormControlLabel
+                  value="OBSERVER"
+                  control={<Radio disabled={loading} />}
+                  label={
+                    <Box>
+                      <Typography variant="body1" fontWeight="medium">
+                        Observer
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        View public recordings and exhibition content
+                      </Typography>
+                    </Box>
+                  }
+                />
+              </RadioGroup>
             </FormControl>
             
             <Button

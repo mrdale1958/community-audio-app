@@ -102,7 +102,7 @@ export function formatDuration(seconds: number): string {
 }
 
 export function isValidAudioType(mimetype: string): boolean {
-  return CONFIG.SUPPORTED_AUDIO_TYPES.includes(mimeType);
+  return CONFIG.SUPPORTED_AUDIO_TYPES.includes(mimetype);
 }
 
 export function isValidFileSize(size: number): boolean {
@@ -158,7 +158,11 @@ export const PageHelpers = {
   validatePageRange: (pageNum: number, totalPages: number) => pageNum >= 1 && pageNum <= totalPages,
   isValidPageNumber: (pageNum: number) => {
     return Number.isInteger(pageNum) && pageNum >= 1 && pageNum <= 1000; // or whatever your max page limit is
-  },}
+  },
+  getPageTitle: (pageNum: number) => `Names - Page ${pageNum}`,
+  formatPageDisplay: (pageNum: number, totalPages: number) => `${pageNum} of ${totalPages}`,
+
+}
 export const AudioHelpers = {
   isValidAudioFile: (file: File) => {
     return file && file.size > 0 && 
