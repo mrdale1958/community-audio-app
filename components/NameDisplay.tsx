@@ -16,7 +16,7 @@ import {
 
 export interface NameWithMetadata {
   name: string;
-  panelNumber?: string | number;
+  artifactNumber?: string | number;
   blockNumber?: string | number;
   originalRecord?: string;
 }
@@ -39,10 +39,10 @@ export default function NameDisplay({
           <Box key={index} sx={{ mb: 1 }}>
             <Typography variant="body2">
               {nameItem.name}
-              {showMetadata && (nameItem.panelNumber || nameItem.blockNumber) && (
+              {showMetadata && (nameItem.artifactNumber || nameItem.blockNumber) && (
                 <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
-                  {nameItem.panelNumber && `Panel ${nameItem.panelNumber}`}
-                  {nameItem.panelNumber && nameItem.blockNumber && ' • '}
+                  {nameItem.artifactNumber && `Artifact ${nameItem.artifactNumber}`}
+                  {nameItem.artifactNumber && nameItem.blockNumber && ' • '}
                   {nameItem.blockNumber && `Block ${nameItem.blockNumber}`}
                 </Typography>
               )}
@@ -60,11 +60,11 @@ export default function NameDisplay({
           <ListItemText
             primary={nameItem.name}
             secondary={
-              showMetadata && (nameItem.panelNumber || nameItem.blockNumber) && (
+              showMetadata && (nameItem.artifactNumber || nameItem.blockNumber) && (
                 <Box sx={{ display: 'flex', gap: 0.5, mt: 0.5 }}>
-                  {nameItem.panelNumber && (
+                  {nameItem.artifactNumber && (
                     <Chip 
-                      label={`Panel ${nameItem.panelNumber}`} 
+                      label={`Artifact ${nameItem.artifactNumber}`} 
                       size="small" 
                       variant="outlined"
                       color="primary"
@@ -91,19 +91,19 @@ export default function NameDisplay({
 // Utility component for page summary with metadata stats
 export function PageMetadataStats({ names }: { names: NameWithMetadata[] }) {
   const stats = React.useMemo(() => {
-    const panels = new Set<string>();
+    const artifacts = new Set<string>();
     const blocks = new Set<string>();
     
     names.forEach(nameItem => {
-      if (nameItem.panelNumber) panels.add(String(nameItem.panelNumber));
+      if (nameItem.artifactNumber) artifacts.add(String(nameItem.artifactNumber));
       if (nameItem.blockNumber) blocks.add(String(nameItem.blockNumber));
     });
 
     return {
       totalNames: names.length,
-      uniquePanels: panels.size,
+      uniqueArtifacts: artifacts.size,
       uniqueBlocks: blocks.size,
-      panelsList: Array.from(panels).sort(),
+      artifactsList: Array.from(artifacts).sort(),
       blocksList: Array.from(blocks).sort()
     };
   }, [names]);
@@ -126,10 +126,10 @@ export function PageMetadataStats({ names }: { names: NameWithMetadata[] }) {
         
         <Grid item xs={6} sm={3}>
           <Typography variant="h4" color="secondary">
-            {stats.uniquePanels}
+            {stats.uniqueArtifacts}
           </Typography>
           <Typography variant="caption" color="text.secondary">
-            Unique Panels
+            Unique Artifacts
           </Typography>
         </Grid>
         
@@ -143,10 +143,10 @@ export function PageMetadataStats({ names }: { names: NameWithMetadata[] }) {
         </Grid>
       </Grid>
 
-      {stats.uniquePanels > 0 && (
+      {stats.uniqueArtifacts > 0 && (
         <Box sx={{ mt: 2 }}>
           <Typography variant="subtitle2" gutterBottom>
-            Panels: {stats.panelsList.join(', ')}
+            Artifacts: {stats.artifactsList.join(', ')}
           </Typography>
         </Box>
       )}

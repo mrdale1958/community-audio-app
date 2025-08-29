@@ -35,7 +35,7 @@ type NameListWithRecordings = NameList & {
 // Name object structure with metadata
 export interface NameWithMetadata {
   name: string;
-  panelNumber?: string | number;
+  artifactNumber?: string | number;
   blockNumber?: string | number;
   originalRecord?: string; // Reference to source record
 }
@@ -96,7 +96,7 @@ export class PageManager {
           // New format - validate structure
           return rawNames.map(item => ({
             name: item.name || String(item),
-            panelNumber: item.panelNumber,
+            artifactNumber: item.artifactNumber,
             blockNumber: item.blockNumber,
             originalRecord: item.originalRecord
           }));

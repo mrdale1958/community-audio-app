@@ -234,7 +234,7 @@ export default function FileMakerImport() {
         <Box sx={{ mt: 3, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
           <Typography variant="caption" color="text.secondary">
             <strong>How it works:</strong> This tool connects to the FileMaker database,
-            extracts all names from the Panel Listing fields, removes duplicates, and 
+            extracts all names from the Artifact Listing fields, removes duplicates, and 
             creates pages of 50 names each for recording. Each page gets a PDF that 
             contributors can download for offline recording.
           </Typography>

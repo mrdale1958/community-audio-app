@@ -511,7 +511,7 @@ class FileMakerQuiltClient {
         lastName: record.fieldData.Last_Name,
         fullName: record.fieldData.Full_Name,
         blockId: record.fieldData.Block_ID,
-        panelNumber: record.fieldData.Panel_Number,
+        artifactNumber: record.fieldData.Artifact_Number,
         coordinates: {
           x: record.fieldData.X_Coordinate,
           y: record.fieldData.Y_Coordinate,
