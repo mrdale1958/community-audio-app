@@ -21,7 +21,7 @@ else
     DB_NAME="readmyname_staging"
 fi
 
-BACKUP_DIR="/home/bitnami/backups/readmyname"
+BACKUP_DIR="/home/bitnami/backups"
 CONFIG_DIR="/home/bitnami/config"
 REPO_URL="https://github.com/mrdale1958/community-audio-app.git"  # Update this
 PM2_APP_NAME="readmyname-$ENVIRONMENT"
@@ -50,8 +50,17 @@ echo "✅ Directories created successfully"
 # Backup current deployment if it exists
 if [ -d "$APP_DIR/.git" ]; then
     echo "📦 Creating backup of current deployment..."
-    cp -r "$APP_DIR" "$BACKUP_DIR/$TIMESTAMP"
-    echo "✅ Backup created at $BACKUP_DIR/$TIMESTAMP"
+    BACKUP_NAME="readmyname-$ENVIRONMENT-$TIMESTAMP"
+    
+    # Try main backup location first
+    if cp -r "$APP_DIR" "$BACKUP_DIR/$BACKUP_NAME" 2>/dev/null; then
+        echo "✅ Backup created at $BACKUP_DIR/$BACKUP_NAME"
+    else
+        # Fallback to local backup
+        echo "⚠️  Main backup failed, creating local backup..."
+        cp -r "$APP_DIR" "$APP_DIR.backup.$TIMESTAMP"
+        echo "✅ Local backup created at $APP_DIR.backup.$TIMESTAMP"
+    fi
 fi
 
 # Clone or update repository
