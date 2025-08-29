@@ -141,7 +141,7 @@ fi
 
 # Install dependencies
 echo "📦 Installing dependencies..."
-npm ci --only=production
+npm ci
 
 # Set up environment variables
 echo "🔧 Setting up environment variables..."
