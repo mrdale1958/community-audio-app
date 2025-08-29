@@ -37,17 +37,15 @@ echo "  - Backup dir: $BACKUP_DIR"
 echo "  - App dir: $APP_DIR"
 echo "  - Config dir: $CONFIG_DIR"
 
-mkdir -p "$BACKUP_DIR"
-mkdir -p "$APP_DIR" 
-mkdir -p "$CONFIG_DIR"
+# Create directories with proper permissions from the start
+mkdir -p "$BACKUP_DIR" && chmod 755 "$BACKUP_DIR" 2>/dev/null || echo "⚠️  Note: Could not set permissions on backup directory"
+mkdir -p "$APP_DIR" && chmod 755 "$APP_DIR" 2>/dev/null || echo "⚠️  Note: Could not set permissions on app directory"
+mkdir -p "$CONFIG_DIR" && chmod 755 "$CONFIG_DIR" 2>/dev/null || echo "⚠️  Note: Could not set permissions on config directory"
 mkdir -p "/home/bitnami/readmyname/uploads"
 mkdir -p "/home/bitnami/readmyname-staging/uploads"
 sudo mkdir -p "/opt/bitnami/apache/logs"
 
-# Ensure proper ownership (bitnami user should already own /home/bitnami)
-chmod 755 "$APP_DIR"
-chmod 755 "$CONFIG_DIR"
-chmod 755 "$BACKUP_DIR"
+echo "✅ Directories created successfully"
 
 # Backup current deployment if it exists
 if [ -d "$APP_DIR/.git" ]; then
