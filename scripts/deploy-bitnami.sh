@@ -185,7 +185,11 @@ if ! grep -q "DATABASE_URL" .env.local; then
 fi
 
 # Show the DATABASE_URL for debugging
-echo "🔍 Using DATABASE_URL: $(grep DATABASE_URL .env.local | cut -d'=' -f2-)"
+echo "🔍 Raw .env.local content:"
+cat .env.local | grep -E "(DATABASE_URL|NODE_ENV|PORT)"
+echo ""
+
+echo "🔍 Using DATABASE_URL from file: $(grep DATABASE_URL .env.local | cut -d'=' -f2-)"
 
 # Load environment variables and run Prisma commands
 echo "🔄 Loading environment variables for Prisma..."
@@ -193,7 +197,28 @@ set -a  # Automatically export all variables
 source .env.local
 set +a  # Turn off automatic export
 
-echo "🔍 DATABASE_URL is now: $DATABASE_URL"
+echo "🔍 DATABASE_URL after sourcing: '$DATABASE_URL'"
+echo "🔍 DATABASE_URL length: ${#DATABASE_URL}"
+echo "🔍 DATABASE_URL starts with 'file:': $(echo "$DATABASE_URL" | grep -q '^file:' && echo 'YES' || echo 'NO')"
+
+# Also check what Prisma sees
+echo "🔍 What Prisma sees:"
+export DATABASE_URL
+printenv | grep DATABASE_URL
+
+# Test Prisma schema validation first
+echo "🔧 Testing Prisma schema validation..."
+if ! npx prisma validate; then
+    echo "❌ Prisma schema validation failed!"
+    echo "🔍 Current working directory: $(pwd)"
+    echo "🔍 Files in current directory:"
+    ls -la
+    echo "🔍 Prisma directory contents:"
+    ls -la prisma/ 2>/dev/null || echo "No prisma directory found"
+    echo "🔍 Current environment variables:"
+    printenv | grep -E "(DATABASE_URL|NODE_ENV)" || echo "No relevant environment variables found"
+    exit 1
+fi
 
 # Generate Prisma client
 echo "🔧 Generating Prisma client..."
