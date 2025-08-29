@@ -193,18 +193,45 @@ echo "🔍 Using DATABASE_URL from file: $(grep DATABASE_URL .env.local | cut -d
 
 # Load environment variables and run Prisma commands
 echo "🔄 Loading environment variables for Prisma..."
-set -a  # Automatically export all variables
-source .env.local
-set +a  # Turn off automatic export
 
-echo "🔍 DATABASE_URL after sourcing: '$DATABASE_URL'"
+# More robust way to load .env.local that handles various formats
+while IFS= read -r line || [ -n "$line" ]; do
+    # Skip empty lines and comments
+    [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]] && continue
+    
+    # Export the variable
+    if [[ "$line" =~ ^[[:space:]]*([^=]+)=(.*)$ ]]; then
+        key="${BASH_REMATCH[1]}"
+        value="${BASH_REMATCH[2]}"
+        
+        # Remove quotes if present
+        value="${value#\"}"
+        value="${value%\"}"
+        value="${value#\'}"
+        value="${value%\'}"
+        
+        export "$key"="$value"
+        echo "🔧 Loaded: $key=$value"
+    fi
+done < .env.local
+
+echo "🔍 DATABASE_URL after loading: '$DATABASE_URL'"
 echo "🔍 DATABASE_URL length: ${#DATABASE_URL}"
 echo "🔍 DATABASE_URL starts with 'file:': $(echo "$DATABASE_URL" | grep -q '^file:' && echo 'YES' || echo 'NO')"
 
+# Fallback: if DATABASE_URL is still not set correctly, set it explicitly
+if [[ -z "$DATABASE_URL" || ! "$DATABASE_URL" =~ ^file: ]]; then
+    echo "⚠️  DATABASE_URL not set correctly, using fallback..."
+    export DATABASE_URL="file:./prisma/${ENVIRONMENT}.db"
+    echo "🔧 Set DATABASE_URL to: $DATABASE_URL"
+fi
+
 # Also check what Prisma sees
 echo "🔍 What Prisma sees:"
+printenv | grep DATABASE_URL || echo "❌ DATABASE_URL not in environment!"
+
+# Ensure the DATABASE_URL is exported for Prisma
 export DATABASE_URL
-printenv | grep DATABASE_URL
 
 # Test Prisma schema validation first
 echo "🔧 Testing Prisma schema validation..."
