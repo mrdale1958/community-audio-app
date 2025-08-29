@@ -7,9 +7,9 @@ import { PageManager } from '@/lib/pageManager';
 import { CONFIG, ValidationHelpers } from '@/lib/config';
 
 interface RouteParams {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 export async function GET(
@@ -26,7 +26,8 @@ export async function GET(
     const seriesId = searchParams.get('series') || undefined;
 
     // Try to parse as page number first
-    const pageNumber = parseInt(params.id);
+    const { id } = await params;
+    const pageNumber = parseInt(id);
     if (!isNaN(pageNumber)) {
       const pageData = await PageManager.getPageData(pageNumber, seriesId);
       if (!pageData) {
@@ -39,7 +40,7 @@ export async function GET(
     }
 
     // Otherwise treat as page ID
-    const pageData = await PageManager.getPageById(params.id);
+    const pageData = await PageManager.getPageById(id);
     if (!pageData) {
       return NextResponse.json({ error: 'Page not found' }, { status: 404 });
     }
@@ -80,7 +81,7 @@ export async function PUT(
     }
 
     // Check if user owns this page or has admin/manager role
-    const existingPage = await PageManager.getPageById(params.id);
+    const existingPage = await PageManager.getPageById((await params).id);
     if (!existingPage) {
       return NextResponse.json({ error: 'Page not found' }, { status: 404 });
     }
@@ -96,7 +97,7 @@ export async function PUT(
       );
     }
 
-    const updatedPage = await PageManager.updatePage(params.id, {
+    const updatedPage = await PageManager.updatePage((await params).id, {
       names,
       title,
       description,
@@ -135,7 +136,7 @@ export async function DELETE(
     }
 
     // Check if user owns this page or has admin/manager role
-    const existingPage = await PageManager.getPageById(params.id);
+    const existingPage = await PageManager.getPageById((await params).id);
     if (!existingPage) {
       return NextResponse.json({ error: 'Page not found' }, { status: 404 });
     }
@@ -151,7 +152,7 @@ export async function DELETE(
       );
     }
 
-    await PageManager.deletePage(params.id);
+    await PageManager.deletePage((await params).id);
 
     return NextResponse.json({
       success: true,

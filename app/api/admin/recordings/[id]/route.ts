@@ -7,7 +7,7 @@ import { join } from 'path'
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions)
@@ -20,7 +20,7 @@ export async function PATCH(
     }
 
     const { status } = await request.json()
-    const recordingId = params.id
+    const { id: recordingId } = await params
 
     if (!['APPROVED', 'REJECTED', 'PENDING'].includes(status)) {
       return NextResponse.json(
@@ -55,7 +55,7 @@ export async function PATCH(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions)
@@ -67,7 +67,7 @@ export async function DELETE(
       )
     }
 
-    const recordingId = params.id
+    const { id: recordingId } = await params
 
     // Get recording details before deletion
     const recording = await prisma.recording.findUnique({

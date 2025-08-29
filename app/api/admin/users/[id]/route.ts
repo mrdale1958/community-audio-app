@@ -7,7 +7,7 @@ import { join } from 'path'
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions)
@@ -20,7 +20,7 @@ export async function PATCH(
     }
 
     const { role } = await request.json()
-    const userId = params.id
+    const { id: userId } = await params
 
     if (!['CONTRIBUTOR', 'OBSERVER', 'MANAGER', 'ADMIN'].includes(role)) {
       return NextResponse.json(
@@ -70,7 +70,7 @@ export async function PATCH(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions)
@@ -82,7 +82,7 @@ export async function DELETE(
       )
     }
 
-    const userId = params.id
+    const { id: userId } = await params
 
     // Prevent admin from deleting themselves
     if (session.user.id === userId) {

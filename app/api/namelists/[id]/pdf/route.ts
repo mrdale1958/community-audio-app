@@ -6,7 +6,7 @@ import jsPDF from 'jspdf'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions)
@@ -18,7 +18,7 @@ export async function GET(
       )
     }
 
-    const nameListId = params.id
+    const { id: nameListId } = await params
 
     // Get the name list from database
     const nameList = await prisma.nameList.findUnique({

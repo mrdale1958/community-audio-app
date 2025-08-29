@@ -5,10 +5,10 @@ import { prisma } from '@/lib/prisma'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const recordingId = params.id
+    const { id: recordingId } = await params
 
     // Get recording metadata from database
     const recording = await prisma.recording.findUnique({

@@ -7,7 +7,7 @@ import { join } from 'path';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -18,7 +18,7 @@ export async function GET(
 
     const recording = await prisma.recording.findFirst({
       where: {
-        id: params.id,
+        id: (await params).id,
         userId: session.user.id,
       },
       include: {
@@ -54,7 +54,7 @@ export async function GET(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -66,7 +66,7 @@ export async function DELETE(
     // Find the recording
     const recording = await prisma.recording.findFirst({
       where: {
-        id: params.id,
+        id: (await params).id,
         userId: session.user.id,
       },
     });
@@ -86,7 +86,7 @@ export async function DELETE(
 
     // Delete from database
     await prisma.recording.delete({
-      where: { id: params.id },
+      where: { id: (await params).id },
     });
 
     return NextResponse.json({ success: true });
@@ -101,7 +101,7 @@ export async function DELETE(
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -116,7 +116,7 @@ export async function PATCH(
     // Find the recording
     const recording = await prisma.recording.findFirst({
       where: {
-        id: params.id,
+        id: (await params).id,
         userId: session.user.id,
       },
     });
@@ -127,7 +127,7 @@ export async function PATCH(
 
     // Update the recording
     const updatedRecording = await prisma.recording.update({
-      where: { id: params.id },
+      where: { id: (await params).id },
       data: {
         ...(notes !== undefined && { notes }),
         ...(status !== undefined && { status }),

@@ -7,7 +7,7 @@ import { join } from 'path';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -17,9 +17,10 @@ export async function GET(
     }
 
     // Find the recording
+    const { id: recordingId } = await params;
     const recording = await prisma.recording.findFirst({
       where: {
-        id: params.id,
+        id: recordingId,
         userId: session.user.id,
       },
     });
