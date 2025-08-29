@@ -119,7 +119,7 @@ NODE_ENV=production
 PORT=$PORT
 NEXTAUTH_URL=https://www.aidsquilttouch.org/readmyname
 NEXTAUTH_SECRET=your-nextauth-secret-here
-DATABASE_URL=file:./prisma/dev.db
+DATABASE_URL="file:./prisma/${ENVIRONMENT}.db"
 EOF
     echo "⚠️  Please update .env.local with proper configuration"
 fi
@@ -132,6 +132,16 @@ if [ ! -f ".env.local" ]; then
     echo "❌ Error: .env.local file is required for database setup"
     exit 1
 fi
+
+# Verify DATABASE_URL is set
+if ! grep -q "DATABASE_URL" .env.local; then
+    echo "❌ Error: DATABASE_URL not found in .env.local"
+    echo "📝 Adding DATABASE_URL to .env.local..."
+    echo "DATABASE_URL=\"file:./prisma/${ENVIRONMENT}.db\"" >> .env.local
+fi
+
+# Show the DATABASE_URL for debugging
+echo "🔍 Using DATABASE_URL: $(grep DATABASE_URL .env.local | cut -d'=' -f2-)"
 
 # Generate Prisma client
 npx prisma generate
