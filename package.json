@@ -6,7 +6,7 @@
     "seed": "node prisma/seed.js"
   },
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev -p 3100",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
@@ -47,7 +47,7 @@
     "eslint": "^8.57.0",
     "eslint-config-next": "^15.0.4",
     "i": "^0.3.7",
-    "npm": "^11.4.2",
+    "npm": "^10.9.2",
     "postcss": "^8.5.6",
     "prisma": "^6.15.0",
     "tailwindcss": "^4.1.11",
