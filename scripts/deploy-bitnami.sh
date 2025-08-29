@@ -31,19 +31,22 @@ echo "🌐 Port: $PORT"
 echo "🔧 Commit: $COMMIT_SHA"
 
 # Create necessary directories
-sudo mkdir -p $BACKUP_DIR
-sudo mkdir -p $APP_DIR
-sudo mkdir -p /home/bitnami/readmyname/uploads
-sudo mkdir -p /home/bitnami/apache/logs
+mkdir -p $BACKUP_DIR
+mkdir -p $APP_DIR
+mkdir -p $CONFIG_DIR
+mkdir -p /home/bitnami/readmyname/uploads
+mkdir -p /home/bitnami/readmyname-staging/uploads
+sudo mkdir -p /opt/bitnami/apache/logs
 
-# Ensure bitnami user owns the app directory
-sudo chown -R bitnami:daemon $APP_DIR
-sudo chown -R bitnami:daemon /home/bitnami/readmyname/uploads
+# Ensure proper ownership (bitnami user should already own /home/bitnami)
+chmod 755 $APP_DIR
+chmod 755 $CONFIG_DIR
+chmod 755 $BACKUP_DIR
 
 # Backup current deployment if it exists
 if [ -d "$APP_DIR/.git" ]; then
     echo "📦 Creating backup of current deployment..."
-    sudo cp -r $APP_DIR $BACKUP_DIR/$TIMESTAMP
+    cp -r $APP_DIR $BACKUP_DIR/$TIMESTAMP
     echo "✅ Backup created at $BACKUP_DIR/$TIMESTAMP"
 fi
 
@@ -92,11 +95,11 @@ else
 fi
 
 # Copy environment file if it exists
-if [ -f "/home/bitnami/config/$ENV_FILE" ]; then
-    cp "/home/bitnami/config/$ENV_FILE" .env.local
-    echo "✅ Environment variables copied from /opt/bitnami/config/$ENV_FILE"
+if [ -f "$CONFIG_DIR/$ENV_FILE" ]; then
+    cp "$CONFIG_DIR/$ENV_FILE" .env.local
+    echo "✅ Environment variables copied from $CONFIG_DIR/$ENV_FILE"
 else
-    echo "⚠️  Warning: Environment file not found at /opt/bitnami/config/$ENV_FILE"
+    echo "⚠️  Warning: Environment file not found at $CONFIG_DIR/$ENV_FILE"
     echo "📝 Creating minimal .env.local file..."
     cat > .env.local << EOF
 NODE_ENV=production
@@ -110,12 +113,31 @@ fi
 
 # Set up database
 echo "🗄️  Setting up database..."
+
+# Ensure .env.local exists before running Prisma commands
+if [ ! -f ".env.local" ]; then
+    echo "❌ Error: .env.local file is required for database setup"
+    exit 1
+fi
+
+# Generate Prisma client
 npx prisma generate
-if [ ! -f "prisma/dev.db" ]; then
-    echo "📊 Creating new database..."
-    npx prisma migrate deploy
-    npx prisma db seed
+
+# Check if database exists and run appropriate commands
+DB_PATH=$(grep DATABASE_URL .env.local | cut -d'=' -f2 | sed 's/file://' | sed 's/"//g')
+if [[ "$DB_PATH" == *"file:"* ]] || [[ "$DB_PATH" == *".db"* ]]; then
+    # SQLite database
+    DB_FILE=$(echo $DB_PATH | sed 's/.*file://' | sed 's/.*\///')
+    if [ ! -f "prisma/$DB_FILE" ]; then
+        echo "📊 Creating new SQLite database..."
+        npx prisma migrate deploy
+        npx prisma db seed 2>/dev/null || echo "ℹ️  No seed file found, skipping seeding"
+    else
+        echo "🔄 Running database migrations..."
+        npx prisma migrate deploy
+    fi
 else
+    # PostgreSQL or other database
     echo "🔄 Running database migrations..."
     npx prisma migrate deploy
 fi
@@ -227,7 +249,7 @@ echo "📝 Logs: pm2 logs $PM2_APP_NAME"
 echo "🔧 PM2 Status: pm2 list"
 echo ""
 echo "📋 Next steps:"
-echo "1. Update /opt/bitnami/config/$ENV_FILE with proper environment variables"
+echo "1. Update $CONFIG_DIR/$ENV_FILE with proper environment variables"
 echo "2. Set up SSL certificate if needed"
 echo "3. Configure backup strategy"
 echo "4. Monitor application logs"
