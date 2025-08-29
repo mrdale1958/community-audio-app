@@ -143,14 +143,24 @@ fi
 # Show the DATABASE_URL for debugging
 echo "🔍 Using DATABASE_URL: $(grep DATABASE_URL .env.local | cut -d'=' -f2-)"
 
+# Load environment variables and run Prisma commands
+echo "🔄 Loading environment variables for Prisma..."
+set -a  # Automatically export all variables
+source .env.local
+set +a  # Turn off automatic export
+
+echo "🔍 DATABASE_URL is now: $DATABASE_URL"
+
 # Generate Prisma client
+echo "🔧 Generating Prisma client..."
 npx prisma generate
 
 # Check if database exists and run appropriate commands
-DB_PATH=$(grep DATABASE_URL .env.local | cut -d'=' -f2 | sed 's/file://' | sed 's/"//g')
-if [[ "$DB_PATH" == *"file:"* ]] || [[ "$DB_PATH" == *".db"* ]]; then
-    # SQLite database
-    DB_FILE=$(echo $DB_PATH | sed 's/.*file://' | sed 's/.*\///')
+if [[ "$DATABASE_URL" == *"file:"* ]]; then
+    # SQLite database - extract just the filename
+    DB_FILE=$(echo $DATABASE_URL | sed 's/.*file:\.\///' | sed 's/.*\///')
+    echo "📁 Database file: $DB_FILE"
+    
     if [ ! -f "prisma/$DB_FILE" ]; then
         echo "📊 Creating new SQLite database..."
         npx prisma migrate deploy
@@ -160,7 +170,7 @@ if [[ "$DB_PATH" == *"file:"* ]] || [[ "$DB_PATH" == *".db"* ]]; then
         npx prisma migrate deploy
     fi
 else
-    # PostgreSQL or other database
+    # Other database types
     echo "🔄 Running database migrations..."
     npx prisma migrate deploy
 fi
