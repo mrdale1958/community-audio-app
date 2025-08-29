@@ -22,6 +22,7 @@ else
 fi
 
 BACKUP_DIR="/home/bitnami/backups/readmyname"
+CONFIG_DIR="/home/bitnami/config"
 REPO_URL="https://github.com/mrdale1958/community-audio-app.git"  # Update this
 PM2_APP_NAME="readmyname-$ENVIRONMENT"
 
