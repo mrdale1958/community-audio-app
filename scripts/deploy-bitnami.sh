@@ -12,7 +12,7 @@ TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 if [ "$ENVIRONMENT" = "production" ]; then
     APP_DIR="/home/bitnami/readmyname"
     PORT=3100
-    BRANCH="main"
+    BRANCH="main" 
     DB_NAME="readmyname_production"
 else
     APP_DIR="/home/bitnami/readmyname-staging"
@@ -22,8 +22,7 @@ else
 fi
 
 BACKUP_DIR="/home/bitnami/backups/readmyname"
-CONFIG_DIR="/home/bitnami/config"
-REPO_URL="https://github.com/yourusername/community-audio-app.git"  # Update this
+REPO_URL="https://github.com/mrdale1958/community-audio-app.git"  # Update this
 PM2_APP_NAME="readmyname-$ENVIRONMENT"
 
 echo "🚀 Starting deployment to $ENVIRONMENT environment..."
@@ -32,17 +31,14 @@ echo "🌐 Port: $PORT"
 echo "🔧 Commit: $COMMIT_SHA"
 
 # Create necessary directories
-mkdir -p $BACKUP_DIR
-mkdir -p $APP_DIR
-mkdir -p $CONFIG_DIR
-mkdir -p /home/bitnami/readmyname/uploads
-mkdir -p /home/bitnami/readmyname-staging/uploads
-sudo mkdir -p /opt/bitnami/apache/logs
+sudo mkdir -p $BACKUP_DIR
+sudo mkdir -p $APP_DIR
+sudo mkdir -p /home/bitnami/readmyname/uploads
+sudo mkdir -p /home/bitnami/apache/logs
 
-# Ensure proper ownership (bitnami user should already own /home/bitnami)
-chmod 755 $APP_DIR
-chmod 755 $CONFIG_DIR
-chmod 755 $BACKUP_DIR
+# Ensure bitnami user owns the app directory
+sudo chown -R bitnami:daemon $APP_DIR
+sudo chown -R bitnami:daemon /home/bitnami/readmyname/uploads
 
 # Backup current deployment if it exists
 if [ -d "$APP_DIR/.git" ]; then
@@ -96,11 +92,11 @@ else
 fi
 
 # Copy environment file if it exists
-if [ -f "$CONFIG_DIR/$ENV_FILE" ]; then
-    cp "$CONFIG_DIR/$ENV_FILE" .env.local
-    echo "✅ Environment variables copied from $CONFIG_DIR/$ENV_FILE"
+if [ -f "/home/bitnami/config/$ENV_FILE" ]; then
+    cp "/home/bitnami/config/$ENV_FILE" .env.local
+    echo "✅ Environment variables copied from /opt/bitnami/config/$ENV_FILE"
 else
-    echo "⚠️  Warning: Environment file not found at $CONFIG_DIR/$ENV_FILE"
+    echo "⚠️  Warning: Environment file not found at /opt/bitnami/config/$ENV_FILE"
     echo "📝 Creating minimal .env.local file..."
     cat > .env.local << EOF
 NODE_ENV=production
@@ -231,7 +227,7 @@ echo "📝 Logs: pm2 logs $PM2_APP_NAME"
 echo "🔧 PM2 Status: pm2 list"
 echo ""
 echo "📋 Next steps:"
-echo "1. Update $CONFIG_DIR/$ENV_FILE with proper environment variables"
+echo "1. Update /opt/bitnami/config/$ENV_FILE with proper environment variables"
 echo "2. Set up SSL certificate if needed"
 echo "3. Configure backup strategy"
 echo "4. Monitor application logs"
