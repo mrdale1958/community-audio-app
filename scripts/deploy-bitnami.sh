@@ -82,12 +82,20 @@ if [ "$COMMIT_SHA" != "latest" ]; then
     git checkout "$COMMIT_SHA"
 fi
 
-# Install Node.js 18 if not present (Bitnami usually has older version)
-if ! command -v node &> /dev/null || [ "$(node -v | cut -d'v' -f2 | cut -d'.' -f1)" -lt "18" ]; then
-    echo "📦 Installing Node.js 18..."
-    curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+# Install Node.js 20 if not present (Bitnami usually has older version)
+if ! command -v node &> /dev/null || [ "$(node -v | cut -d'v' -f2 | cut -d'.' -f1)" -lt "20" ]; then
+    echo "📦 Installing Node.js 20..."
+    curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
     sudo apt-get install -y nodejs
+    
+    # Upgrade npm to latest version
+    echo "📦 Upgrading npm to latest version..."
+    sudo npm install -g npm@latest
 fi
+
+# Show versions for debugging
+echo "📊 Node.js version: $(node -v)"
+echo "📊 npm version: $(npm -v)"
 
 # Install PM2 if not present
 if ! command -v pm2 &> /dev/null; then
