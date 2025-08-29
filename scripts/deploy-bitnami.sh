@@ -4,7 +4,7 @@
 
 set -e  # Exit on any error
 
-ENVIRONMENT=${1:-staging}
+ENVIRONMENT=${1:-production}
 COMMIT_SHA=${2:-latest}
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 
