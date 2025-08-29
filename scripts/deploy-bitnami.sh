@@ -31,42 +31,47 @@ echo "🌐 Port: $PORT"
 echo "🔧 Commit: $COMMIT_SHA"
 
 # Create necessary directories
-mkdir -p $BACKUP_DIR
-mkdir -p $APP_DIR
-mkdir -p $CONFIG_DIR
-mkdir -p /home/bitnami/readmyname/uploads
-mkdir -p /home/bitnami/readmyname-staging/uploads
-sudo mkdir -p /opt/bitnami/apache/logs
+echo "📁 Creating directories..."
+echo "  - Backup dir: $BACKUP_DIR"
+echo "  - App dir: $APP_DIR"
+echo "  - Config dir: $CONFIG_DIR"
+
+mkdir -p "$BACKUP_DIR"
+mkdir -p "$APP_DIR" 
+mkdir -p "$CONFIG_DIR"
+mkdir -p "/home/bitnami/readmyname/uploads"
+mkdir -p "/home/bitnami/readmyname-staging/uploads"
+sudo mkdir -p "/opt/bitnami/apache/logs"
 
 # Ensure proper ownership (bitnami user should already own /home/bitnami)
-chmod 755 $APP_DIR
-chmod 755 $CONFIG_DIR
-chmod 755 $BACKUP_DIR
+chmod 755 "$APP_DIR"
+chmod 755 "$CONFIG_DIR"
+chmod 755 "$BACKUP_DIR"
 
 # Backup current deployment if it exists
 if [ -d "$APP_DIR/.git" ]; then
     echo "📦 Creating backup of current deployment..."
-    cp -r $APP_DIR $BACKUP_DIR/$TIMESTAMP
+    cp -r "$APP_DIR" "$BACKUP_DIR/$TIMESTAMP"
     echo "✅ Backup created at $BACKUP_DIR/$TIMESTAMP"
 fi
 
 # Clone or update repository
 if [ ! -d "$APP_DIR/.git" ]; then
     echo "📥 Cloning repository..."
-    git clone -b $BRANCH $REPO_URL $APP_DIR
-    cd $APP_DIR
+    git clone -b "$BRANCH" "$REPO_URL" "$APP_DIR"
+    cd "$APP_DIR"
 else
     echo "🔄 Updating repository..."
-    cd $APP_DIR
+    cd "$APP_DIR"
     git fetch origin
-    git checkout $BRANCH
-    git pull origin $BRANCH
+    git checkout "$BRANCH"
+    git pull origin "$BRANCH"
 fi
 
 # Checkout specific commit if provided
 if [ "$COMMIT_SHA" != "latest" ]; then
     echo "🔍 Checking out commit $COMMIT_SHA..."
-    git checkout $COMMIT_SHA
+    git checkout "$COMMIT_SHA"
 fi
 
 # Install Node.js 18 if not present (Bitnami usually has older version)
