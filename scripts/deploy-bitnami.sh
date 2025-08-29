@@ -87,15 +87,51 @@ if ! command -v node &> /dev/null || [ "$(node -v | cut -d'v' -f2 | cut -d'.' -f
     echo "📦 Installing Node.js 20..."
     curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
     sudo apt-get install -y nodejs
-    
-    # Upgrade npm to latest version
-    echo "📦 Upgrading npm to latest version..."
-    sudo npm install -g npm@latest
 fi
 
-# Show versions for debugging
-echo "📊 Node.js version: $(node -v)"
-echo "📊 npm version: $(npm -v)"
+# Ensure we're using the correct Node.js version by updating PATH
+export PATH="/usr/bin:$PATH"
+hash -r  # Refresh command cache
+
+# Show current versions
+echo "📊 Current Node.js version: $(node -v)"
+echo "📊 Current npm version: $(npm -v)"
+
+# Check if we have the right Node.js version now
+CURRENT_NODE_VERSION=$(node -v | cut -d'v' -f2 | cut -d'.' -f1)
+if [ "$CURRENT_NODE_VERSION" -lt "20" ]; then
+    echo "⚠️  Still using old Node.js. Checking alternative paths..."
+    
+    # Check common Node.js installation paths
+    if [ -f "/usr/bin/node" ]; then
+        NODE_VERSION_ALT=$(/usr/bin/node -v | cut -d'v' -f2 | cut -d'.' -f1)
+        if [ "$NODE_VERSION_ALT" -ge "20" ]; then
+            echo "✅ Found Node.js 20+ at /usr/bin/node"
+            export PATH="/usr/bin:$PATH"
+            alias node='/usr/bin/node'
+            alias npm='/usr/bin/npm'
+            hash -r
+        fi
+    fi
+fi
+
+# Final version check and npm upgrade
+echo "📊 Final Node.js version: $(node -v)"
+echo "📊 Final npm version: $(npm -v)"
+
+# Only upgrade npm if we have Node.js 20+
+FINAL_NODE_VERSION=$(node -v | cut -d'v' -f2 | cut -d'.' -f1)
+if [ "$FINAL_NODE_VERSION" -ge "20" ]; then
+    # Get current npm version
+    CURRENT_NPM_MAJOR=$(npm -v | cut -d'.' -f1)
+    if [ "$CURRENT_NPM_MAJOR" -lt "10" ]; then
+        echo "📦 Upgrading npm to version 10..."
+        sudo npm install -g npm@^10.9.2
+        echo "✅ npm upgraded to: $(npm -v)"
+    fi
+else
+    echo "⚠️  Still using Node.js $FINAL_NODE_VERSION, keeping existing npm"
+fi
 
 # Install PM2 if not present
 if ! command -v pm2 &> /dev/null; then
