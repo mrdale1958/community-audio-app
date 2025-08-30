@@ -8,5 +8,6 @@ interface AuthProviderProps {
 }
 
 export function AuthProvider({ children }: AuthProviderProps) {
-  return <SessionProvider>{children}</SessionProvider>
+  const basePath = process.env.NODE_ENV === 'production' ? '/readmyname/api/auth' : '/api/auth'
+  return <SessionProvider basePath={basePath}>{children}</SessionProvider>
 }

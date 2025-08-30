@@ -12,7 +12,7 @@ export function useManageData() {
   // Load data functions
   const loadRecordings = useCallback(async () => {
     try {
-      const response = await fetch('/api/admin/recordings')
+      const response = await fetch('/api/admin/recordings/')
       if (!response.ok) throw new Error('Failed to load recordings')
       
       const data = await response.json()
@@ -25,7 +25,7 @@ export function useManageData() {
 
   const loadUsers = useCallback(async () => {
     try {
-      const response = await fetch('/api/admin/users')
+      const response = await fetch('/api/admin/users/')
       if (!response.ok) throw new Error('Failed to load users')
       
       const data = await response.json()
@@ -38,7 +38,7 @@ export function useManageData() {
 
   const loadStats = useCallback(async () => {
     try {
-      const response = await fetch('/api/admin/stats')
+      const response = await fetch('/api/admin/stats/')
       if (!response.ok) throw new Error('Failed to load stats')
       
       const data = await response.json()
@@ -131,7 +131,7 @@ export function useManageData() {
         throw new Error('Please enter a valid email address')
       }
       
-      const response = await fetch('/api/admin/users', {
+      const response = await fetch('/api/admin/users/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(userData)

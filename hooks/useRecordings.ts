@@ -8,7 +8,7 @@ export const useRecordings = () => {
 
   const fetchRecordings = async () => {
     try {
-      const response = await fetch('/api/recordings');
+      const response = await fetch('/api/recordings/');
       if (response.ok) {
         const data = await response.json();
         setRecordings(data.recordings || data);
@@ -22,7 +22,7 @@ export const useRecordings = () => {
 
   const fetchStats = async () => {
     try {
-      const response = await fetch('/api/recordings/stats');
+      const response = await fetch('/api/recordings/stats/');
       if (response.ok) {
         const data = await response.json();
         setStats(data);

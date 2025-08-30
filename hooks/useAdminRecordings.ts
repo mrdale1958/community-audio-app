@@ -26,7 +26,7 @@ export const useAdminRecordings = () => {
       if (params?.sortBy) searchParams.set('sortBy', params.sortBy);
       if (params?.sortOrder) searchParams.set('sortOrder', params.sortOrder);
 
-      const response = await fetch(`/api/admin/recordings?${searchParams}`);
+      const response = await fetch(`/api/admin/recordings/?${searchParams}`);
       if (response.ok) {
         const data = await response.json();
         setRecordings(data.recordings || data);
@@ -43,7 +43,7 @@ export const useAdminRecordings = () => {
 
   const fetchStats = async () => {
     try {
-      const response = await fetch('/api/admin/stats');
+      const response = await fetch('/api/admin/stats/');
       if (response.ok) {
         const data = await response.json();
         setStats(data);
@@ -81,7 +81,7 @@ export const useAdminRecordings = () => {
 
   const bulkAction = async (action: BulkAction) => {
     try {
-      const response = await fetch('/api/admin/recordings/bulk', {
+      const response = await fetch('/api/admin/recordings/bulk/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(action),

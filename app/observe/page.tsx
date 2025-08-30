@@ -16,6 +16,7 @@ import {
 } from '@mui/material';
 import { PlayArrow, Stop, VolumeUp } from '@mui/icons-material';
 import UpcomingExhibitions from '@/components/UpcomingExhibitions';
+import { apiFetch } from '@/lib/api';
 
 interface ObserveStats {
   totalNames: number;
@@ -59,7 +60,7 @@ export default function ObservePage() {
         setError(null);
 
         // Fetch page statistics to get total names count
-        const response = await fetch('/api/stats');
+        const response = await apiFetch('/api/stats/');
         if (!response.ok) {
           throw new Error('Failed to fetch statistics');
         }
