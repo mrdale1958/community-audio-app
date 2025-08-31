@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, MapPin, Clock, Users, Mic, ArrowRight } from 'lucide-react';
+import { apiUrl } from "@/lib/api";
 
 interface Exhibition {
   id: string;
@@ -32,7 +33,7 @@ const UpcomingExhibitions = () => {
   const fetchUpcomingExhibitions = async () => {
     try {
       // This would call your exhibitions API with a filter for upcoming events
-      const response = await fetch('/api/exhibitions/?upcoming=true&limit=3');
+      const response = await fetch(apiUrl('/api/exhibitions/?upcoming=true&limit=3'));
       const data = await response.json();
       setExhibitions(data.exhibitions || []);
     } catch (error) {

@@ -32,11 +32,12 @@ import {
 } from '@mui/icons-material'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
+import { apiUrl } from "@/lib/api"
 
 interface NameList {
   id: string
   title: string
-  names: string[]
+  names: Array<{name: string, panelNumber?: string, blockNumber?: string, originalRecord?: string} | string>
   pageNumber: number
 }
 
@@ -103,7 +104,7 @@ export default function LiveRecordingPage() {
   const loadNameList = async () => {
     try {
       setIsLoading(true)
-      const response = await fetch('/api/namelists')
+      const response = await fetch(apiUrl('/api/namelists'))
       if (!response.ok) throw new Error('Failed to load name lists')
       
       const nameLists = await response.json()
@@ -267,7 +268,7 @@ export default function LiveRecordingPage() {
       formData.append('method', 'LIVE')
       formData.append('duration', recordingTime.toString())
       
-      const response = await fetch('/api/recordings/upload', {
+      const response = await fetch(apiUrl('/api/recordings/upload'), {
         method: 'POST',
         body: formData
       })
@@ -389,24 +390,35 @@ export default function LiveRecordingPage() {
               </Button>
             </Box>
             
-            <Paper sx={{ p: 2, maxHeight: 300, overflow: 'auto', bgcolor: 'grey.50' }}>
-              <Grid container spacing={1}>
-                {currentNameList.names.map((name, index) => (
-                  <Grid item xs={6} sm={4} md={3} key={index}>
-                    <Chip 
-                      label={name} 
-                      variant="outlined" 
-                      size="small"
-                      sx={{ width: '100%' }}
-                    />
+            <Paper sx={{ p: 2, bgcolor: 'grey.50', border: 1, borderColor: 'divider' }}>
+              <Grid container spacing={1.5}>
+                {currentNameList.names.map((nameObj, index) => (
+                  <Grid item xs={6} md={4} key={index}>
+                    <Typography
+                      variant="body1"
+                      sx={{ 
+                        p: 1.5,
+                        bgcolor: 'background.paper',
+                        border: 1,
+                        borderColor: 'divider',
+                        borderRadius: 1,
+                        textAlign: 'center',
+                        minHeight: 48,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        wordBreak: 'break-word',
+                        hyphens: 'auto'
+                      }}
+                    >
+                      {typeof nameObj === "string" ? nameObj : nameObj.name}
+                    </Typography>
                   </Grid>
                 ))}
               </Grid>
             </Paper>
             
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-              Read these {currentNameList.names.length} names clearly into your microphone
-            </Typography>
+
           </CardContent>
         </Card>
       )}
@@ -438,7 +450,11 @@ export default function LiveRecordingPage() {
           </Box>
 
           <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', flexWrap: 'wrap' }}>
-            {!isRecording && !audioBlob && (
+            <Typography variant="body1" sx={{ mb: 2, fontWeight: 500, textAlign: 'center' }}>
+                Read these {currentNameList ? currentNameList.names.length : 44} names clearly into your microphone
+              </Typography>
+              
+              {!isRecording && !audioBlob && (
               <Button
                 variant="contained"
                 size="large"
