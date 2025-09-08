@@ -126,52 +126,69 @@ export async function GET(
 
     y += 10 // Extra space before names
 
-    // Names
+    // Names in two columns
     pdf.setFontSize(12)
     pdf.setFont('helvetica', 'normal')
 
+    const columnWidth = (pageWidth - 3 * margin) / 2 // Two columns with margin between
+    const leftColumnX = margin
+    const rightColumnX = margin + columnWidth + margin
+    const maxY = pageHeight - margin - 20 // Leave space for footer
+    
+    let leftY = y
+    let rightY = y
+    let currentColumn = 'left'
+    
     for (let i = 0; i < names.length; i++) {
       const name = names[i]
       
-      // Check if we need a new page
-      if (y > pageHeight - margin - lineHeight) {
-        pdf.addPage()
-        y = margin
-        
-        // Add page header
-        pdf.setFontSize(10)
-        pdf.setFont('helvetica', 'italic')
-        pdf.text(`${title} (continued)`, margin, y)
-        y += 15
-        pdf.setFontSize(12)
-        pdf.setFont('helvetica', 'normal')
+      if (currentColumn === 'left') {
+        // Check if we need to switch to right column
+        if (leftY > maxY) {
+          currentColumn = 'right'
+          rightY = y // Reset right column to top
+        } else {
+          pdf.text(name, leftColumnX, leftY)
+          leftY += lineHeight + 1
+          continue
+        }
       }
-
-      // Add name with number
-      const nameText = `${i + 1}. ${name}`
-      pdf.text(nameText, margin, y)
-      y += lineHeight + 2 // Extra spacing between names
+      
+      if (currentColumn === 'right') {
+        // Check if right column is full (should not happen with 20 names)
+        if (rightY > maxY) {
+          // This shouldn't happen with proper sizing, but just in case
+          pdf.addPage()
+          leftY = margin + 20
+          rightY = margin + 20
+          currentColumn = 'left'
+          i-- // Retry this name
+          continue
+        }
+        
+        pdf.text(name, rightColumnX, rightY)
+        rightY += lineHeight + 1
+        
+        // Switch back to left column for next name
+        currentColumn = 'left'
+      }
     }
 
-    // Add footer with metadata
-    const totalPages = pdf.internal.getNumberOfPages()
-    for (let i = 1; i <= totalPages; i++) {
-      pdf.setPage(i)
-      pdf.setFontSize(8)
-      pdf.setFont('helvetica', 'italic')
+    // Add footer with metadata (should only be page 1)
+    pdf.setFontSize(8)
+    pdf.setFont('helvetica', 'italic')
+    pdf.text(
+      `Community Audio Recording Project - ${title}`,
+      margin,
+      pageHeight - 10
+    )
+    
+    if (pageNumber) {
       pdf.text(
-        `Community Audio Recording Project - ${title} - Page ${i} of ${totalPages}`,
-        margin,
+        `List Page: ${pageNumber}`,
+        pageWidth - margin - 30,
         pageHeight - 10
       )
-      
-      if (pageNumber) {
-        pdf.text(
-          `List Page: ${pageNumber}`,
-          pageWidth - margin - 30,
-          pageHeight - 10
-        )
-      }
     }
 
     // Generate PDF buffer
