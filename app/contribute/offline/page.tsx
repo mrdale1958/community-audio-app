@@ -36,7 +36,8 @@ import {
   Delete,
   CloudUpload,
   CheckCircle,
-  Error as ErrorIcon
+  Error as ErrorIcon,
+  Refresh
 } from '@mui/icons-material'
 
 interface NameList {
@@ -60,21 +61,33 @@ export default function OfflineContributePage() {
   
   const [currentNameList, setCurrentNameList] = useState<NameList | null>(null)
   const [allNameLists, setAllNameLists] = useState<NameList[]>([])
+  const [unrecordedCount, setUnrecordedCount] = useState<number>(0)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([])
   const [showSuccessMessage, setShowSuccessMessage] = useState(false)
   const [successMessage, setSuccessMessage] = useState('')
 
-  // Load available name lists
+  // Load available name lists and find unrecorded page
   const loadNameLists = async () => {
     try {
       setIsLoading(true)
-      const response = await fetch(apiUrl('/api/namelists'))
-      if (!response.ok) throw new Error('Failed to load name lists')
       
-      const data = await response.json()
-      const nameLists = data.pages || []
+      // Fetch both name lists and user's existing recordings in parallel
+      const [nameListsResponse, recordingsResponse] = await Promise.all([
+        fetch(apiUrl('/api/namelists')),
+        fetch(apiUrl('/api/recordings'))
+      ])
+      
+      if (!nameListsResponse.ok) throw new Error('Failed to load name lists')
+      if (!recordingsResponse.ok) throw new Error('Failed to load recordings')
+      
+      const nameListsData = await nameListsResponse.json()
+      const recordingsData = await recordingsResponse.json()
+      
+      const nameLists = nameListsData.pages || []
+      const existingRecordings = recordingsData.recordings || []
+      
       setAllNameLists(nameLists)
       
       if (nameLists.length === 0) {
@@ -82,9 +95,26 @@ export default function OfflineContributePage() {
         return
       }
       
-      // Select the first name list by default
-      setCurrentNameList(nameLists[0])
+      // Find unrecorded pages
+      const recordedNameListIds = new Set(existingRecordings.map((r: any) => r.nameListId))
+      const unrecordedPages = nameLists.filter((page: NameList) => !recordedNameListIds.has(page.id))
+      
+      if (unrecordedPages.length === 0) {
+        setError('🎉 Amazing! You have recorded all available pages. Thank you for your incredible contribution to the project!')
+        setCurrentNameList(null)
+        return
+      }
+      
+      // Select a random unrecorded page
+      const randomPage = unrecordedPages[Math.floor(Math.random() * unrecordedPages.length)]
+      setCurrentNameList(randomPage)
+      setUnrecordedCount(unrecordedPages.length)
+      
+      // Show progress
+      const recordedCount = existingRecordings.length
+      const totalCount = nameLists.length
       setError('')
+      console.log(`Progress: ${recordedCount}/${totalCount} pages recorded, ${unrecordedPages.length} remaining`)
     } catch (err) {
       setError('Failed to load name lists. Please try again.')
       console.error('Error loading name lists:', err)
@@ -297,17 +327,17 @@ export default function OfflineContributePage() {
       <Card sx={{ mb: 4 }}>
         <CardContent>
           <Typography variant="h6" gutterBottom>
-            How it works:
+            Offline Recording Process:
           </Typography>
           <Box component="ol" sx={{ pl: 2 }}>
             <Typography component="li" sx={{ mb: 1 }}>
-              Download a PDF name list below
+              We'll show you one unrecorded page at a time
             </Typography>
             <Typography component="li" sx={{ mb: 1 }}>
-              Record yourself reading the names using any audio recording app
+              Download the PDF for this page and record yourself reading the names
             </Typography>
             <Typography component="li" sx={{ mb: 1 }}>
-              Upload your recording file back here
+              Upload your recording file back here when complete
             </Typography>
             <Typography component="li">
               Your contribution will be reviewed and added to the exhibition
@@ -316,52 +346,20 @@ export default function OfflineContributePage() {
         </CardContent>
       </Card>
 
-      {/* Name Lists */}
-      <Typography variant="h5" gutterBottom>
-        Available Name Lists
-      </Typography>
+      {/* Current Page */}
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+        <Typography variant="h5">
+          Your Page to Record
+        </Typography>
+        {unrecordedCount > 0 && (
+          <Chip
+            label={`${unrecordedCount} pages remaining`}
+            color="primary"
+            variant="outlined"
+          />
+        )}
+      </Box>
 
-      {/* Page Navigation */}
-      {allNameLists.length > 1 && currentNameList && (
-        <Card sx={{ mb: 3 }}>
-          <CardContent>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Typography variant="h6">
-                Choose a Page ({allNameLists.length} available)
-              </Typography>
-              <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                <Button
-                  variant="outlined"
-                  size="small"
-                  onClick={() => {
-                    const currentIndex = allNameLists.findIndex(list => list.id === currentNameList?.id)
-                    const prevIndex = currentIndex > 0 ? currentIndex - 1 : allNameLists.length - 1
-                    setCurrentNameList(allNameLists[prevIndex])
-                  }}
-                  disabled={allNameLists.length <= 1}
-                >
-                  Previous
-                </Button>
-                <Typography variant="body2" sx={{ minWidth: '100px', textAlign: 'center' }}>
-                  {allNameLists.findIndex(list => list.id === currentNameList?.id) + 1} of {allNameLists.length}
-                </Typography>
-                <Button
-                  variant="outlined"
-                  size="small"
-                  onClick={() => {
-                    const currentIndex = allNameLists.findIndex(list => list.id === currentNameList?.id)
-                    const nextIndex = (currentIndex + 1) % allNameLists.length
-                    setCurrentNameList(allNameLists[nextIndex])
-                  }}
-                  disabled={allNameLists.length <= 1}
-                >
-                  Next
-                </Button>
-              </Box>
-            </Box>
-          </CardContent>
-        </Card>
-      )}
       
       {isLoading ? (
         <Box sx={{ textAlign: 'center', py: 4 }}>
@@ -372,7 +370,7 @@ export default function OfflineContributePage() {
         <Grid container spacing={3} sx={{ mb: 4 }}>
           {currentNameList && (
             <Grid item xs={12} key={currentNameList.id}>
-              <Card>
+              <Card sx={{ border: 2, borderColor: 'primary.main' }}>
                 <CardContent>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
                     <Box>
@@ -392,6 +390,12 @@ export default function OfflineContributePage() {
                           variant="outlined"
                         />
                       )}
+                      <Chip
+                        label="Unrecorded"
+                        size="small"
+                        color="warning"
+                        variant="outlined"
+                      />
                     </Box>
                   </Box>
 
@@ -403,6 +407,15 @@ export default function OfflineContributePage() {
                       size="small"
                     >
                       Download PDF
+                    </Button>
+                    <Button
+                      variant="outlined"
+                      startIcon={<Refresh />}
+                      onClick={loadNameLists}
+                      size="small"
+                      disabled={isLoading}
+                    >
+                      Get Another Page
                     </Button>
                   </Box>
 
