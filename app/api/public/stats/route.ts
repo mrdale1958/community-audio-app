@@ -55,6 +55,9 @@ export async function GET(request: NextRequest) {
           },
           nameList: {
             select: { title: true }
+          },
+          name: {
+            select: { importOrder: true }
           }
         },
         orderBy: { updatedAt: 'desc' },
@@ -73,6 +76,9 @@ export async function GET(request: NextRequest) {
           },
           nameList: {
             select: { title: true }
+          },
+          name: {
+            select: { importOrder: true }
           }
         },
         orderBy: { createdAt: 'desc' },
@@ -122,14 +128,14 @@ export async function GET(request: NextRequest) {
         id: r.id,
         type: 'approval' as const,
         contributorName: r.user.name,
-        nameListTitle: r.nameList.title,
+        nameListTitle: r.nameList?.title || `Name ${r.name?.importOrder || 'Unknown'}`,
         createdAt: r.updatedAt.toISOString()
       })),
       ...recentSubmissions.map(r => ({
         id: r.id,
         type: 'recording' as const,
         contributorName: r.user.name,
-        nameListTitle: r.nameList.title,
+        nameListTitle: r.nameList?.title || `Name ${r.name?.importOrder || 'Unknown'}`,
         createdAt: r.createdAt.toISOString()
       }))
     ]

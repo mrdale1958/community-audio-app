@@ -68,6 +68,10 @@ export default function LiveRecordingPage() {
   const [recordingTime, setRecordingTime] = useState(0)
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null)
   const [audioUrl, setAudioUrl] = useState<string>('')
+  const [isPlaying, setIsPlaying] = useState(false)
+  
+  // Audio playback ref
+  const audioRef = useRef<HTMLAudioElement>(null)
   
   // Styling controls state with localStorage persistence
   const [columnCount, setColumnCount] = useState(() => {
@@ -377,6 +381,19 @@ export default function LiveRecordingPage() {
     return `${mins}:${secs.toString().padStart(2, '0')}`
   }
 
+  // Toggle audio playback
+  const togglePlayback = () => {
+    if (!audioRef.current || !audioUrl) return
+    
+    if (isPlaying) {
+      audioRef.current.pause()
+      setIsPlaying(false)
+    } else {
+      audioRef.current.play()
+      setIsPlaying(true)
+    }
+  }
+
   // Save display options to localStorage
   const saveDisplayOptions = () => {
     if (typeof window !== 'undefined') {
@@ -600,7 +617,7 @@ export default function LiveRecordingPage() {
                     <Button
                       size="small"
                       startIcon={<Refresh />}
-                      onClick={clearRecording}
+                      onClick={resetRecording}
                     >
                       Clear
                     </Button>
@@ -680,9 +697,13 @@ export default function LiveRecordingPage() {
               {audioUrl ? (
                 <Box>
                   <audio 
+                    ref={audioRef}
                     controls 
                     src={audioUrl} 
                     style={{ width: '100%' }}
+                    onPlay={() => setIsPlaying(true)}
+                    onPause={() => setIsPlaying(false)}
+                    onEnded={() => setIsPlaying(false)}
                     onError={(e) => {
                       console.error('Audio playback error:', e)
                       setError('Audio preview unavailable in this browser, but recording is valid for saving')
