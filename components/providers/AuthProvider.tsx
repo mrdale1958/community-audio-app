@@ -8,6 +8,10 @@ interface AuthProviderProps {
 }
 
 export function AuthProvider({ children }: AuthProviderProps) {
-  const basePath = process.env.NODE_ENV === 'production' ? '/readmyname/api/auth' : '/api/auth'
+  // Client-side detection of basePath
+  const basePath = typeof window !== 'undefined' && window.location.pathname.startsWith('/readmyname')
+    ? '/readmyname/api/auth'
+    : '/api/auth'
+  
   return <SessionProvider basePath={basePath}>{children}</SessionProvider>
 }

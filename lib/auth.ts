@@ -3,7 +3,7 @@
 import { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import { prisma } from './prisma';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 
 // Force load environment variables
 const NEXTAUTH_SECRET = process.env.NEXTAUTH_SECRET || 'fallback-secret-for-dev';

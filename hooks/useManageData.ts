@@ -1,6 +1,7 @@
 // hooks/useManageData.ts
 import { useState, useCallback } from 'react'
 import type { Recording, User, ProjectStats, NewUserData } from '../types/manage'
+import { apiUrl } from '@/lib/api'
 
 export function useManageData() {
   const [recordings, setRecordings] = useState<Recording[]>([])
@@ -12,7 +13,7 @@ export function useManageData() {
   // Load data functions
   const loadRecordings = useCallback(async () => {
     try {
-      const response = await fetch('/api/admin/recordings/')
+      const response = await fetch(apiUrl('/api/admin/recordings/'))
       if (!response.ok) throw new Error('Failed to load recordings')
       
       const data = await response.json()
@@ -25,7 +26,7 @@ export function useManageData() {
 
   const loadUsers = useCallback(async () => {
     try {
-      const response = await fetch('/api/admin/users/')
+      const response = await fetch(apiUrl('/api/admin/users/'))
       if (!response.ok) throw new Error('Failed to load users')
       
       const data = await response.json()
@@ -38,7 +39,7 @@ export function useManageData() {
 
   const loadStats = useCallback(async () => {
     try {
-      const response = await fetch('/api/admin/stats/')
+      const response = await fetch(apiUrl('/api/admin/stats/'))
       if (!response.ok) throw new Error('Failed to load stats')
       
       const data = await response.json()
@@ -58,7 +59,7 @@ export function useManageData() {
   // Recording management
   const updateRecordingStatus = useCallback(async (recordingId: string, status: 'APPROVED' | 'REJECTED') => {
     try {
-      const response = await fetch(`/api/admin/recordings/${recordingId}`, {
+      const response = await fetch(apiUrl(`/api/admin/recordings/${recordingId}`), {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status })
@@ -80,7 +81,7 @@ export function useManageData() {
 
   const deleteRecording = useCallback(async (recordingId: string) => {
     try {
-      const response = await fetch(`/api/admin/recordings/${recordingId}`, {
+      const response = await fetch(apiUrl(`/api/admin/recordings/${recordingId}`), {
         method: 'DELETE'
       })
       
@@ -99,7 +100,7 @@ export function useManageData() {
   // User management
   const updateUserRole = useCallback(async (userId: string, role: string) => {
     try {
-      const response = await fetch(`/api/admin/users/${userId}`, {
+      const response = await fetch(apiUrl(`/api/admin/users/${userId}`), {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ role })
@@ -131,7 +132,7 @@ export function useManageData() {
         throw new Error('Please enter a valid email address')
       }
       
-      const response = await fetch('/api/admin/users/', {
+      const response = await fetch(apiUrl('/api/admin/users/'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(userData)
@@ -160,7 +161,7 @@ export function useManageData() {
 
   const deleteUser = useCallback(async (userId: string) => {
     try {
-      const response = await fetch(`/api/admin/users/${userId}`, {
+      const response = await fetch(apiUrl(`/api/admin/users/${userId}`), {
         method: 'DELETE'
       })
       

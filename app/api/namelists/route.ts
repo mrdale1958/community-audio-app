@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
+import { pageSplitter, type OriginalPage } from '@/lib/pageSplitter'
 
 export async function GET(request: NextRequest) {
   try {
@@ -16,17 +17,29 @@ export async function GET(request: NextRequest) {
 
     const nameLists = await prisma.nameList.findMany({
       orderBy: {
-        createdAt: 'desc'
+        pageNumber: 'asc'
       }
     })
 
-    // Parse the JSON names for each list
-    const nameListsWithParsedNames = nameLists.map(list => ({
-      ...list,
-      names: JSON.parse(list.names)
+    // Parse the JSON names and convert to OriginalPage format
+    const originalPages: OriginalPage[] = nameLists.map(list => ({
+      id: list.id,
+      title: list.title,
+      names: JSON.parse(list.names),
+      pageNumber: list.pageNumber || 0
     }))
 
-    return NextResponse.json(nameListsWithParsedNames)
+    // Split pages into 20-name chunks
+    const splitPages = pageSplitter.splitPages(originalPages)
+
+    // Add statistics for debugging
+    const stats = pageSplitter.getStats(originalPages)
+    console.log('Page split stats:', stats)
+
+    return NextResponse.json({
+      pages: splitPages,
+      stats
+    })
 
   } catch (error) {
     console.error('Error fetching name lists:', error)

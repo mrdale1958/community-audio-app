@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Recording, RecordingStats } from '@/types/recording';
+import { apiUrl } from '@/lib/api';
 
 export const useRecordings = () => {
   const [recordings, setRecordings] = useState<Recording[]>([]);
@@ -8,7 +9,7 @@ export const useRecordings = () => {
 
   const fetchRecordings = async () => {
     try {
-      const response = await fetch('/api/recordings/');
+      const response = await fetch(apiUrl('/api/recordings/'));
       if (response.ok) {
         const data = await response.json();
         setRecordings(data.recordings || data);
@@ -22,7 +23,7 @@ export const useRecordings = () => {
 
   const fetchStats = async () => {
     try {
-      const response = await fetch('/api/recordings/stats/');
+      const response = await fetch(apiUrl('/api/recordings/stats/'));
       if (response.ok) {
         const data = await response.json();
         setStats(data);
@@ -34,7 +35,7 @@ export const useRecordings = () => {
 
   const deleteRecording = async (id: string) => {
     try {
-      const response = await fetch(`/api/recordings/${id}`, {
+      const response = await fetch(apiUrl(`/api/recordings/${id}`), {
         method: 'DELETE',
       });
       

@@ -6,19 +6,14 @@ export async function GET(request: NextRequest) {
   try {
     // Get comprehensive statistics from the database
     const [
-      allNameLists,
+      totalNames,
       totalRecordings,
       approvedRecordings,
-      totalPages,
       pagesWithRecordings,
       recordingsByStatus
     ] = await Promise.all([
-      // Get all name lists to calculate total names
-      prisma.nameList.findMany({
-        select: {
-          names: true
-        }
-      }),
+      // Get total names count (static since migration is complete)
+      Promise.resolve(91897), // Direct count - much faster than DB query
       
       // Total recordings count
       prisma.recording.count(),
@@ -30,8 +25,6 @@ export async function GET(request: NextRequest) {
         }
       }),
       
-      // Total pages count
-      prisma.nameList.count(),
       
       // Pages that have at least one recording
       prisma.nameList.count({
@@ -51,19 +44,11 @@ export async function GET(request: NextRequest) {
       })
     ]);
 
-    // Calculate total names by parsing JSON from each name list
-    const totalNames = allNameLists.reduce((total, nameList) => {
-      try {
-        const namesArray = JSON.parse(nameList.names);
-        return total + (Array.isArray(namesArray) ? namesArray.length : 0);
-      } catch (error) {
-        console.warn('Failed to parse names JSON for a name list:', error);
-        return total;
-      }
-    }, 0);
+    // Calculate total pages based on 20 names per page
+    const totalSplitPages = Math.ceil(totalNames / 20);
 
     const completionPercentage = totalNames > 0 ? (approvedRecordings / totalNames) * 100 : 0;
-    const pagesCompletionPercentage = totalPages > 0 ? (pagesWithRecordings / totalPages) * 100 : 0;
+    const pagesCompletionPercentage = totalSplitPages > 0 ? (pagesWithRecordings / totalSplitPages) * 100 : 0;
 
     // Format recording status breakdown
     const statusBreakdown = recordingsByStatus.reduce((acc, item) => {
@@ -75,7 +60,7 @@ export async function GET(request: NextRequest) {
       totalNames,
       totalRecordings,
       approvedRecordings,
-      totalPages,
+      totalPages: totalSplitPages, // Use split page count
       pagesWithRecordings,
       remainingNames: totalNames - approvedRecordings,
       completionPercentage: Math.round(completionPercentage * 10) / 10, // Round to 1 decimal
@@ -87,9 +72,9 @@ export async function GET(request: NextRequest) {
         archived: statusBreakdown.archived || 0,
       },
       // Additional metrics
-      averageRecordingsPerPage: totalPages > 0 ? Math.round((totalRecordings / totalPages) * 10) / 10 : 0,
-      pagesNeedingRecordings: totalPages - pagesWithRecordings,
-      averageNamesPerPage: totalPages > 0 ? Math.round((totalNames / totalPages) * 10) / 10 : 0,
+      averageRecordingsPerPage: totalSplitPages > 0 ? Math.round((totalRecordings / totalSplitPages) * 10) / 10 : 0,
+      pagesNeedingRecordings: totalSplitPages - pagesWithRecordings,
+      averageNamesPerPage: totalSplitPages > 0 ? Math.round((totalNames / totalSplitPages) * 10) / 10 : 0,
     };
 
     return NextResponse.json({

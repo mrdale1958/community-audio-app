@@ -18,7 +18,18 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  Snackbar
+  Snackbar,
+  Slider,
+  FormControl,
+  FormLabel,
+  FormGroup,
+  FormControlLabel,
+  Switch,
+  Select,
+  MenuItem,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails
 } from '@mui/material'
 import {
   Mic,
@@ -28,17 +39,23 @@ import {
   Save,
   VolumeUp,
   Download,
-  Refresh
+  Refresh,
+  ExpandMore,
+  Tune
 } from '@mui/icons-material'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import { apiUrl } from "@/lib/api"
+import { apiUrl } from '@/lib/api'
 
 interface NameList {
   id: string
+  originalId: string
   title: string
   names: Array<{name: string, panelNumber?: string, blockNumber?: string, originalRecord?: string} | string>
   pageNumber: number
+  subPage: string
+  displayTitle: string
+  totalNamesInOriginal: number
 }
 
 export default function LiveRecordingPage() {
@@ -51,6 +68,50 @@ export default function LiveRecordingPage() {
   const [recordingTime, setRecordingTime] = useState(0)
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null)
   const [audioUrl, setAudioUrl] = useState<string>('')
+  
+  // Styling controls state with localStorage persistence
+  const [columnCount, setColumnCount] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('recordingDisplayOptions')
+      return saved ? JSON.parse(saved).columnCount || 3 : 3
+    }
+    return 3
+  })
+  const [fontSize, setFontSize] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('recordingDisplayOptions')
+      return saved ? JSON.parse(saved).fontSize || 16 : 16
+    }
+    return 16
+  })
+  const [fontWeight, setFontWeight] = useState<'normal' | 'bold'>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('recordingDisplayOptions')
+      return saved ? JSON.parse(saved).fontWeight || 'normal' : 'normal'
+    }
+    return 'normal'
+  })
+  const [showBorder, setShowBorder] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('recordingDisplayOptions')
+      return saved ? JSON.parse(saved).showBorder !== false : true
+    }
+    return true
+  })
+  const [verticalSpacing, setVerticalSpacing] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('recordingDisplayOptions')
+      return saved ? JSON.parse(saved).verticalSpacing || 1.5 : 1.5
+    }
+    return 1.5
+  })
+  const [horizontalSpacing, setHorizontalSpacing] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('recordingDisplayOptions')
+      return saved ? JSON.parse(saved).horizontalSpacing || 1.5 : 1.5
+    }
+    return 1.5
+  })
   
   // UI state
   const [currentNameList, setCurrentNameList] = useState<NameList | null>(null)
@@ -107,11 +168,15 @@ export default function LiveRecordingPage() {
       const response = await fetch(apiUrl('/api/namelists'))
       if (!response.ok) throw new Error('Failed to load name lists')
       
-      const nameLists = await response.json()
+      const data = await response.json()
+      const nameLists = data.pages || []
+      
       if (nameLists.length === 0) {
         setError('No name lists available. Please contact an administrator.')
         return
       }
+      
+      console.log('Page split stats:', data.stats)
       
       // Select a random name list
       const randomList = nameLists[Math.floor(Math.random() * nameLists.length)]
@@ -312,6 +377,26 @@ export default function LiveRecordingPage() {
     return `${mins}:${secs.toString().padStart(2, '0')}`
   }
 
+  // Save display options to localStorage
+  const saveDisplayOptions = () => {
+    if (typeof window !== 'undefined') {
+      const options = {
+        columnCount,
+        fontSize,
+        fontWeight,
+        showBorder,
+        verticalSpacing,
+        horizontalSpacing
+      }
+      localStorage.setItem('recordingDisplayOptions', JSON.stringify(options))
+    }
+  }
+
+  // Save options whenever they change
+  useEffect(() => {
+    saveDisplayOptions()
+  }, [columnCount, fontSize, fontWeight, showBorder, verticalSpacing, horizontalSpacing])
+
   // Load name list on component mount
   useEffect(() => {
     if (status === 'authenticated') {
@@ -374,41 +459,203 @@ export default function LiveRecordingPage() {
 
       {/* Name List Display */}
       {currentNameList && (
-        <Card sx={{ mb: 3 }}>
-          <CardContent>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-              <Typography variant="h6">
-                {currentNameList.title}
-              </Typography>
-              <Button
-                startIcon={<Refresh />}
-                onClick={loadNameList}
-                disabled={isRecording || isLoading}
-                size="small"
-              >
-                New List
-              </Button>
-            </Box>
+        <>
+          {/* Page Title - Right under header */}
+          <Box sx={{ mb: 3 }}>
+            <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
+              Live Recording - {currentNameList.displayTitle}
+            </Typography>
+          </Box>
+
+          {/* Compact Styling Controls */}
+          <Card sx={{ mb: 2 }}>
+            <Accordion>
+              <AccordionSummary expandIcon={<ExpandMore />}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Tune fontSize="small" />
+                  <Typography variant="body2">Display Options</Typography>
+                </Box>
+              </AccordionSummary>
+              <AccordionDetails>
+                <Grid container spacing={3}>
+                  <Grid item xs={6} sm={3}>
+                    <FormControl size="small" fullWidth>
+                      <FormLabel>Columns</FormLabel>
+                      <Select
+                        value={columnCount}
+                        onChange={(e) => setColumnCount(Number(e.target.value))}
+                        size="small"
+                      >
+                        <MenuItem value={2}>2 columns</MenuItem>
+                        <MenuItem value={3}>3 columns</MenuItem>
+                        <MenuItem value={4}>4 columns</MenuItem>
+                        <MenuItem value={5}>5 columns</MenuItem>
+                      </Select>
+                    </FormControl>
+                  </Grid>
+                  <Grid item xs={6} sm={3}>
+                    <FormControl size="small" fullWidth>
+                      <FormLabel>Font Size</FormLabel>
+                      <Slider
+                        value={fontSize}
+                        onChange={(_, value) => setFontSize(value as number)}
+                        min={12}
+                        max={24}
+                        step={1}
+                        marks={[{value: 16, label: '16px'}]}
+                        size="small"
+                      />
+                    </FormControl>
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <FormGroup row>
+                      <FormControlLabel
+                        control={
+                          <Switch
+                            checked={fontWeight === 'bold'}
+                            onChange={(e) => setFontWeight(e.target.checked ? 'bold' : 'normal')}
+                            size="small"
+                          />
+                        }
+                        label="Bold"
+                      />
+                      <FormControlLabel
+                        control={
+                          <Switch
+                            checked={showBorder}
+                            onChange={(e) => setShowBorder(e.target.checked)}
+                            size="small"
+                          />
+                        }
+                        label="Borders"
+                      />
+                    </FormGroup>
+                  </Grid>
+                </Grid>
+              </AccordionDetails>
+            </Accordion>
+          </Card>
+
+          {/* Recording Controls */}
+          <Card sx={{ mb: 2 }}>
+            <CardContent sx={{ pb: '16px !important' }}>
+
+              {/* Compact Recording Controls */}
+              <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center', flexWrap: 'wrap', alignItems: 'center' }}>
+                <Typography variant="body2" sx={{ fontWeight: 500, minWidth: { xs: '100%', sm: 'auto' }, textAlign: 'center', mb: { xs: 1, sm: 0 } }}>
+                  Read clearly:
+                </Typography>
+                
+                {!isRecording && !audioBlob && (
+                  <Button
+                    variant="contained"
+                    size="small"
+                    startIcon={<Mic />}
+                    onClick={startRecording}
+                    disabled={!currentNameList || isLoading}
+                    color="error"
+                  >
+                    Record
+                  </Button>
+                )}
+
+                {isRecording && (
+                  <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                    <IconButton
+                      size="small"
+                      onClick={togglePause}
+                      color={isPaused ? "primary" : "default"}
+                    >
+                      {isPaused ? <PlayArrow /> : <Pause />}
+                    </IconButton>
+                    <IconButton
+                      size="small"
+                      onClick={stopRecording}
+                      color="error"
+                    >
+                      <Stop />
+                    </IconButton>
+                    <Typography variant="body2" color={isPaused ? "text.secondary" : "error"}>
+                      {formatTime(recordingTime)} {isPaused && "(Paused)"}
+                    </Typography>
+                  </Box>
+                )}
+
+                {audioBlob && !isRecording && (
+                  <Box sx={{ display: 'flex', gap: 1 }}>
+                    <Button
+                      size="small"
+                      startIcon={<PlayArrow />}
+                      onClick={togglePlayback}
+                      disabled={!audioUrl}
+                    >
+                      {isPlaying ? 'Stop' : 'Play'}
+                    </Button>
+                    <Button
+                      size="small"
+                      startIcon={<Save />}
+                      onClick={() => setShowSaveDialog(true)}
+                      variant="contained"
+                      color="primary"
+                    >
+                      Save
+                    </Button>
+                    <Button
+                      size="small"
+                      startIcon={<Refresh />}
+                      onClick={clearRecording}
+                    >
+                      Clear
+                    </Button>
+                  </Box>
+                )}
+
+                {!isRecording && !audioBlob && session?.user?.role === 'ADMIN' && (
+                  <Button
+                    size="small"
+                    startIcon={<Refresh />}
+                    onClick={loadNameList}
+                    disabled={isLoading}
+                    sx={{ ml: 1 }}
+                  >
+                    New Page
+                  </Button>
+                )}
+              </Box>
+            </CardContent>
+          </Card>
+
+          {/* Names Display */}
+          <Card>
+            <CardContent>
             
-            <Paper sx={{ p: 2, bgcolor: 'grey.50', border: 1, borderColor: 'divider' }}>
-              <Grid container spacing={1.5}>
+            <Paper sx={{ p: verticalSpacing, bgcolor: 'grey.50', border: showBorder ? 1 : 0, borderColor: 'divider' }}>
+              <Grid container spacing={horizontalSpacing}>
                 {currentNameList.names.map((nameObj, index) => (
-                  <Grid item xs={6} md={4} key={index}>
+                  <Grid 
+                    item 
+                    xs={12 / Math.min(columnCount, 2)} 
+                    md={12 / columnCount} 
+                    key={index}
+                  >
                     <Typography
                       variant="body1"
                       sx={{ 
-                        p: 1.5,
+                        p: verticalSpacing,
                         bgcolor: 'background.paper',
-                        border: 1,
+                        border: showBorder ? 1 : 0,
                         borderColor: 'divider',
                         borderRadius: 1,
                         textAlign: 'center',
-                        minHeight: 48,
+                        minHeight: fontSize * 2.5,
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
                         wordBreak: 'break-word',
-                        hyphens: 'auto'
+                        hyphens: 'auto',
+                        fontSize: fontSize,
+                        fontWeight: fontWeight,
+                        lineHeight: 1.3
                       }}
                     >
                       {typeof nameObj === "string" ? nameObj : nameObj.name}
@@ -421,79 +668,8 @@ export default function LiveRecordingPage() {
 
           </CardContent>
         </Card>
+        </>
       )}
-
-      {/* Recording Controls */}
-      <Card sx={{ mb: 3 }}>
-        <CardContent sx={{ textAlign: 'center' }}>
-          <Box sx={{ mb: 3 }}>
-            <Typography variant="h2" component="div" color={isRecording ? 'error.main' : 'text.secondary'}>
-              {formatTime(recordingTime)}
-            </Typography>
-            {isRecording && (
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mt: 1 }}>
-                <Box
-                  sx={{
-                    width: 12,
-                    height: 12,
-                    borderRadius: '50%',
-                    backgroundColor: 'error.main',
-                    mr: 1,
-                    animation: 'pulse 1.5s ease-in-out infinite alternate'
-                  }}
-                />
-                <Typography variant="body2" color="error">
-                  {isPaused ? 'PAUSED' : 'RECORDING'}
-                </Typography>
-              </Box>
-            )}
-          </Box>
-
-          <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', flexWrap: 'wrap' }}>
-            <Typography variant="body1" sx={{ mb: 2, fontWeight: 500, textAlign: 'center' }}>
-                Read these {currentNameList ? currentNameList.names.length : 44} names clearly into your microphone
-              </Typography>
-              
-              {!isRecording && !audioBlob && (
-              <Button
-                variant="contained"
-                size="large"
-                startIcon={<Mic />}
-                onClick={startRecording}
-                disabled={!currentNameList || isLoading}
-                color="error"
-                sx={{ minWidth: 140 }}
-              >
-                Start Recording
-              </Button>
-            )}
-
-            {isRecording && (
-              <>
-                <IconButton
-                  size="large"
-                  onClick={togglePause}
-                  color="warning"
-                  sx={{ bgcolor: 'warning.light', '&:hover': { bgcolor: 'warning.main' } }}
-                >
-                  {isPaused ? <PlayArrow /> : <Pause />}
-                </IconButton>
-
-                <Button
-                  variant="contained"
-                  size="large"
-                  startIcon={<Stop />}
-                  onClick={stopRecording}
-                  color="error"
-                  sx={{ minWidth: 140 }}
-                >
-                  Stop Recording
-                </Button>
-              </>
-            )}
-          </Box>
-        </CardContent>
-      </Card>
 
       {/* Playback and Save */}
       {audioBlob && (
@@ -579,7 +755,7 @@ export default function LiveRecordingPage() {
         <DialogTitle>Save Recording</DialogTitle>
         <DialogContent>
           <Typography>
-            Save this recording of "{currentNameList?.title}"?
+            Save this recording of "{currentNameList?.displayTitle}"?
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
             Duration: {formatTime(recordingTime)}

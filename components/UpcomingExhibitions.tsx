@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, MapPin, Clock, Users, Mic, ArrowRight } from 'lucide-react';
-import { apiUrl } from "@/lib/api";
+import { apiUrl } from '@/lib/api';
 
 interface Exhibition {
   id: string;

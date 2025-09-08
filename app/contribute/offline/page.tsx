@@ -71,8 +71,8 @@ export default function OfflineContributePage() {
       const response = await fetch('/api/namelists')
       if (!response.ok) throw new Error('Failed to load name lists')
       
-      const lists = await response.json()
-      setNameLists(lists)
+      const data = await response.json()
+      setNameLists(data.pages || [])
       setError('')
     } catch (err) {
       setError('Failed to load name lists. Please try again.')

@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>AIDS Quilt Touch - Digital Memorial & Community Recording Project</title>
+    <meta name="description" content="Exploring the AIDS Memorial Quilt through digital tools and preserving voices through community recording projects">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: "Roboto", "Helvetica", "Arial", sans-serif;
+            line-height: 1.5;
+            color: rgba(0, 0, 0, 0.87);
+            background-color: #fff;
+        }
+        
+        .header {
+            background-color: #1976d2;
+            color: white;
+            padding: 16px 24px;
+            box-shadow: 0px 2px 1px -1px rgba(0,0,0,0.2), 0px 1px 1px 0px rgba(0,0,0,0.14), 0px 1px 3px 0px rgba(0,0,0,0.12);
+        }
+        
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            min-height: 48px;
+        }
+        
+        .header h1 {
+            font-size: 1.5rem;
+            font-weight: 500;
+            letter-spacing: 0.0075em;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+        
+        .hero {
+            text-align: center;
+            margin-bottom: 48px;
+        }
+        
+        .hero h2 {
+            font-size: 2.5rem;
+            font-weight: 400;
+            margin-bottom: 16px;
+            color: rgba(0, 0, 0, 0.87);
+        }
+        
+        .hero p {
+            font-size: 1.125rem;
+            color: rgba(0, 0, 0, 0.6);
+            max-width: 800px;
+            margin: 0 auto 32px;
+        }
+        
+        .projects {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 24px;
+            margin-bottom: 48px;
+        }
+        
+        .project-card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0px 2px 1px -1px rgba(0,0,0,0.2), 0px 1px 1px 0px rgba(0,0,0,0.14), 0px 1px 3px 0px rgba(0,0,0,0.12);
+            overflow: hidden;
+            transition: box-shadow 300ms cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .project-card:hover {
+            box-shadow: 0px 3px 3px -2px rgba(0,0,0,0.2), 0px 3px 4px 0px rgba(0,0,0,0.14), 0px 1px 8px 0px rgba(0,0,0,0.12);
+        }
+        
+        .project-header {
+            padding: 16px 24px;
+            background-color: #1976d2;
+            color: white;
+        }
+        
+        .project-header h3 {
+            font-size: 1.25rem;
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+        
+        .project-header .subtitle {
+            font-size: 0.875rem;
+            opacity: 0.9;
+        }
+        
+        .project-content {
+            padding: 24px;
+        }
+        
+        .project-content p {
+            margin-bottom: 16px;
+            color: rgba(0, 0, 0, 0.6);
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 16px;
+            margin: 16px 0;
+        }
+        
+        .stat {
+            text-align: center;
+            padding: 12px;
+            background-color: rgba(25, 118, 210, 0.04);
+            border-radius: 4px;
+        }
+        
+        .stat-number {
+            font-size: 1.5rem;
+            font-weight: 500;
+            color: #1976d2;
+            display: block;
+        }
+        
+        .stat-label {
+            font-size: 0.75rem;
+            color: rgba(0, 0, 0, 0.6);
+            text-transform: uppercase;
+            letter-spacing: 0.08333em;
+        }
+        
+        .btn {
+            display: inline-block;
+            padding: 12px 24px;
+            background-color: #1976d2;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            font-weight: 500;
+            font-size: 0.875rem;
+            letter-spacing: 0.02857em;
+            text-transform: uppercase;
+            transition: background-color 250ms cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0px 3px 1px -2px rgba(0,0,0,0.2), 0px 2px 2px 0px rgba(0,0,0,0.14), 0px 1px 5px 0px rgba(0,0,0,0.12);
+        }
+        
+        .btn:hover {
+            background-color: #1565c0;
+            box-shadow: 0px 2px 4px -1px rgba(0,0,0,0.2), 0px 4px 5px 0px rgba(0,0,0,0.14), 0px 1px 10px 0px rgba(0,0,0,0.12);
+        }
+        
+        .btn-secondary {
+            background-color: transparent;
+            color: #1976d2;
+            border: 1px solid rgba(25, 118, 210, 0.5);
+            box-shadow: none;
+        }
+        
+        .btn-secondary:hover {
+            background-color: rgba(25, 118, 210, 0.04);
+            border-color: #1976d2;
+            box-shadow: none;
+        }
+        
+        .about {
+            background-color: rgba(25, 118, 210, 0.04);
+            padding: 32px;
+            border-radius: 8px;
+            margin: 48px 0;
+        }
+        
+        .about h3 {
+            font-size: 1.5rem;
+            margin-bottom: 16px;
+            color: #1976d2;
+        }
+        
+        .about p {
+            margin-bottom: 16px;
+            color: rgba(0, 0, 0, 0.6);
+        }
+        
+        .footer {
+            background-color: #f5f5f5;
+            padding: 32px 24px;
+            margin-top: 48px;
+            border-top: 1px solid rgba(0, 0, 0, 0.12);
+        }
+        
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            text-align: center;
+            color: rgba(0, 0, 0, 0.6);
+            font-size: 0.875rem;
+        }
+        
+        @media (max-width: 768px) {
+            .hero h2 {
+                font-size: 2rem;
+            }
+            
+            .projects {
+                grid-template-columns: 1fr;
+            }
+            
+            .container {
+                padding: 16px;
+            }
+            
+            .about {
+                padding: 24px 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="header-content">
+            <h1>AIDS Quilt Touch</h1>
+        </div>
+    </header>
+
+    <main class="container">
+        <section class="hero">
+            <h2>Digital Memorial & Community Recording</h2>
+            <p>
+                Explore the AIDS Memorial Quilt through innovative digital tools and join our community effort 
+                to preserve voices and honor memories through collaborative recording projects.
+            </p>
+        </section>
+
+        <section class="projects">
+            <div class="project-card">
+                <div class="project-header">
+                    <h3>AIDS Quilt Analyzer</h3>
+                    <div class="subtitle">Digital Exploration Tool</div>
+                </div>
+                <div class="project-content">
+                    <p>
+                        An interactive digital tool for exploring and analyzing the AIDS Memorial Quilt. 
+                        Discover stories, patterns, and connections within this powerful memorial to lives lost.
+                    </p>
+                    <div class="stats">
+                        <div class="stat">
+                            <span class="stat-number">3,000+</span>
+                            <span class="stat-label">Quilt Blocks</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-number">50,000+</span>
+                            <span class="stat-label">Names</span>
+                        </div>
+                    </div>
+                    <a href="/aids-quilt-analyzer/" class="btn">Explore Quilt</a>
+                </div>
+            </div>
+
+            <div class="project-card">
+                <div class="project-header">
+                    <h3>Call My Name Project</h3>
+                    <div class="subtitle">Community Recording Initiative</div>
+                </div>
+                <div class="project-content">
+                    <p>
+                        Join our community effort to record every name on the AIDS Memorial Quilt. 
+                        Your voice helps preserve memories and creates a living memorial for exhibition spaces.
+                    </p>
+                    <div class="stats">
+                        <div class="stat">
+                            <span class="stat-number" id="total-names">91,927</span>
+                            <span class="stat-label">Total Names</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-number" id="completion-percent">0%</span>
+                            <span class="stat-label">Complete</span>
+                        </div>
+                    </div>
+                    <a href="/readmyname/" class="btn">View Progress</a>
+                    <a href="/readmyname/contribute/live/" class="btn btn-secondary">Start Recording</a>
+                </div>
+            </div>
+
+            <div class="project-card">
+                <div class="project-header">
+                    <h3>Search the Quilt</h3>
+                    <div class="subtitle">Official Interactive Memorial</div>
+                </div>
+                <div class="project-content">
+                    <p>
+                        Search the official AIDS Memorial Quilt database to find specific panels, names, 
+                        or stories. Access the complete interactive memorial maintained by the AIDS Memorial Quilt organization.
+                    </p>
+                    <div class="stats">
+                        <div class="stat">
+                            <span class="stat-number">105K+</span>
+                            <span class="stat-label">Memorialized</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-number">50K+</span>
+                            <span class="stat-label">Panels</span>
+                        </div>
+                    </div>
+                    <a href="https://www.aidsmemorial.org/interactive-aids-quilt" target="_blank" class="btn">Search Memorial</a>
+                </div>
+            </div>
+
+            <div class="project-card">
+                <div class="project-header">
+                    <h3>AQT Table</h3>
+                    <div class="subtitle">Interactive Touch Table Exhibition</div>
+                </div>
+                <div class="project-content">
+                    <p>
+                        Large-scale touch table exhibition that travels with physical Quilt blocks to museums and galleries, 
+                        bringing the complete AIDS Memorial Quilt to visitors through interactive digital exploration.
+                    </p>
+                    <div class="stats">
+                        <div class="stat">
+                            <span class="stat-number">Touch</span>
+                            <span class="stat-label">Interface</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-number">Traveling</span>
+                            <span class="stat-label">Exhibition</span>
+                        </div>
+                    </div>
+                    <a href="/aqt-table/" class="btn">Learn More</a>
+                </div>
+            </div>
+        </section>
+
+        <section class="about">
+            <h3>About the AIDS Memorial Quilt</h3>
+            <p>
+                The AIDS Memorial Quilt is an enormous memorial to celebrate the lives of people who have died of AIDS-related causes. 
+                Started in 1985, it has become the largest piece of community folk art in the world, with more than 50,000 panels 
+                dedicated to more than 105,000 individuals.
+            </p>
+            <p>
+                These digital tools help preserve, explore, and share the stories within the Quilt, ensuring that the memories 
+                and voices of those we've lost continue to educate, inspire, and heal communities around the world.
+            </p>
+            <p>
+                <strong>The AIDS Memorial Quilt teaches us that:</strong><br>
+                • Love is stronger than death<br>
+                • Every life has meaning and deserves to be remembered<br>
+                • Community and compassion can overcome fear and prejudice<br>
+                • Art and activism can create powerful social change
+            </p>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <div class="footer-content">
+            <p>
+                In memory of all those we have lost to AIDS.<br>
+                May their voices continue to speak through love, remembrance, and action.
+            </p>
+        </div>
+    </footer>
+
+    <script>
+        // Fetch live statistics from the Call My Name API
+        async function updateStats() {
+            try {
+                const response = await fetch('/readmyname/api/stats/');
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success && data.data) {
+                        document.getElementById('total-names').textContent = data.data.totalNames.toLocaleString();
+                        document.getElementById('completion-percent').textContent = 
+                            Math.round(data.data.completionPercentage * 10) / 10 + '%';
+                    }
+                }
+            } catch (error) {
+                console.log('Could not load live statistics');
+            }
+        }
+
+        // Update stats when page loads
+        updateStats();
+    </script>
+</body>
+</html>

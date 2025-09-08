@@ -16,9 +16,21 @@ const getBasePath = () => {
 
 export const apiUrl = (path: string): string => {
   const basePath = getBasePath();
-  return `${basePath}${path}`;
+  const url = `${basePath}${path}`;
+  console.log(`[API URL DEBUG] Original: ${path}, BasePath: ${basePath}, Final: ${url}`);
+  return url;
 };
 
 export const apiFetch = async (path: string, options?: RequestInit): Promise<Response> => {
   return fetch(apiUrl(path), options);
+};
+
+// NextAuth specific URL helper
+export const nextAuthUrl = (path: string): string => {
+  const basePath = getBasePath();
+  // Remove /api/auth prefix if it exists, then add the full basePath + auth path
+  const cleanPath = path.replace(/^\/api\/auth/, '');
+  const url = `${basePath}/api/auth${cleanPath}`;
+  console.log(`[NEXTAUTH URL DEBUG] Original: ${path}, BasePath: ${basePath}, Final: ${url}`);
+  return url;
 };

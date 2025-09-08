@@ -6,6 +6,11 @@ const nextConfig = {
   basePath: process.env.NODE_ENV === 'production' ? '/readmyname' : '',
   assetPrefix: process.env.NODE_ENV === 'production' ? '/readmyname' : '',
   
+  // Force cache busting
+  generateBuildId: async () => {
+    return 'build-' + Date.now()
+  },
+  
   // For AWS Lightsail deployment
   output: 'standalone',
   
@@ -21,6 +26,7 @@ const nextConfig = {
   // Environment variables
   env: {
     NEXTAUTH_URL: process.env.NEXTAUTH_URL || 'http://localhost:3000',
+    NEXTAUTH_BASE_PATH: process.env.NODE_ENV === 'production' ? '/readmyname/api/auth' : '/api/auth',
   },
   
   // Headers for Apache proxy
