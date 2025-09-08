@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
+import { pageSplitter, type OriginalPage } from '@/lib/pageSplitter'
 import jsPDF from 'jspdf'
 
 export async function GET(
@@ -20,20 +21,64 @@ export async function GET(
 
     const { id: nameListId } = await params
 
-    // Get the name list from database
-    const nameList = await prisma.nameList.findUnique({
-      where: { id: nameListId }
-    })
+    let names: string[];
+    let title: string;
+    let pageNumber: number | null = null;
 
-    if (!nameList) {
-      return NextResponse.json(
-        { error: 'Name list not found' },
-        { status: 404 }
+    // Check if this is a synthetic page ID (e.g., "page-1") or actual database ID
+    if (nameListId.startsWith('page-')) {
+      // Handle synthetic page IDs from pageSplitter
+      const nameLists = await prisma.nameList.findMany({
+        orderBy: {
+          pageNumber: 'asc'
+        }
+      })
+
+      // Convert to OriginalPage format
+      const originalPages: OriginalPage[] = nameLists.map(list => ({
+        id: list.id,
+        title: list.title,
+        names: JSON.parse(list.names),
+        pageNumber: list.pageNumber || 0
+      }))
+
+      // Get the specific split page
+      const splitPage = pageSplitter.getSplitPageById(originalPages, nameListId)
+      
+      if (!splitPage) {
+        return NextResponse.json(
+          { error: 'Page not found' },
+          { status: 404 }
+        )
+      }
+
+      // Convert names to strings (handle both string and object formats)
+      names = splitPage.names.map(name => 
+        typeof name === 'string' ? name : name.name
       )
-    }
+      title = splitPage.displayTitle
+      pageNumber = splitPage.pageNumber
+    } else {
+      // Handle actual database IDs
+      const nameList = await prisma.nameList.findUnique({
+        where: { id: nameListId }
+      })
 
-    // Parse the names JSON
-    const names = JSON.parse(nameList.names) as string[]
+      if (!nameList) {
+        return NextResponse.json(
+          { error: 'Name list not found' },
+          { status: 404 }
+        )
+      }
+
+      // Parse the names JSON and convert to strings
+      const parsedNames = JSON.parse(nameList.names)
+      names = Array.isArray(parsedNames) 
+        ? parsedNames.map(name => typeof name === 'string' ? name : name.name)
+        : []
+      title = nameList.title
+      pageNumber = nameList.pageNumber
+    }
 
     // Create PDF
     const pdf = new jsPDF()
@@ -46,7 +91,7 @@ export async function GET(
     // Title
     pdf.setFontSize(18)
     pdf.setFont('helvetica', 'bold')
-    pdf.text(nameList.title, margin, y)
+    pdf.text(title, margin, y)
     y += 15
 
     // Instructions
@@ -96,7 +141,7 @@ export async function GET(
         // Add page header
         pdf.setFontSize(10)
         pdf.setFont('helvetica', 'italic')
-        pdf.text(`${nameList.title} (continued)`, margin, y)
+        pdf.text(`${title} (continued)`, margin, y)
         y += 15
         pdf.setFontSize(12)
         pdf.setFont('helvetica', 'normal')
@@ -115,14 +160,14 @@ export async function GET(
       pdf.setFontSize(8)
       pdf.setFont('helvetica', 'italic')
       pdf.text(
-        `Community Audio Recording Project - ${nameList.title} - Page ${i} of ${totalPages}`,
+        `Community Audio Recording Project - ${title} - Page ${i} of ${totalPages}`,
         margin,
         pageHeight - 10
       )
       
-      if (nameList.pageNumber) {
+      if (pageNumber) {
         pdf.text(
-          `List Page: ${nameList.pageNumber}`,
+          `List Page: ${pageNumber}`,
           pageWidth - margin - 30,
           pageHeight - 10
         )
@@ -136,7 +181,7 @@ export async function GET(
     return new NextResponse(pdfBuffer, {
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="${nameList.title.replace(/[^a-z0-9]/gi, '_')}.pdf"`,
+        'Content-Disposition': `attachment; filename="${title.replace(/[^a-z0-9]/gi, '_')}.pdf"`,
         'Content-Length': pdfBuffer.length.toString()
       }
     })
