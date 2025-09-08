@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { apiUrl } from '@/lib/api';
 import {
   Box,
   Card,
@@ -58,7 +59,7 @@ export const UserManagementTab = () => {
 
   const fetchUsers = async () => {
     try {
-      const response = await fetch('/api/admin/users');
+      const response = await fetch(apiUrl('/api/admin/users'));
       if (response.ok) {
         const data = await response.json();
         setUsers(data);
@@ -72,7 +73,7 @@ export const UserManagementTab = () => {
 
   const updateUserRole = async (userId: string, role: string) => {
     try {
-      const response = await fetch(`/api/admin/users/${userId}`, {
+      const response = await fetch(apiUrl(`/api/admin/users/${userId}`), {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ role }),

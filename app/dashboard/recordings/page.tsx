@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
+import { apiUrl } from '@/lib/api'
 import {
   Container,
   Typography,
@@ -94,7 +95,7 @@ export default function DashboardRecordingsPage() {
   const loadRecordings = async () => {
     try {
       setIsLoading(true)
-      const response = await fetch('/api/recordings')
+      const response = await fetch(apiUrl('/api/recordings'))
       if (!response.ok) throw new Error('Failed to load recordings')
       
       const data = await response.json()
@@ -192,7 +193,7 @@ export default function DashboardRecordingsPage() {
   // Download recording
   const downloadRecording = async (recording: Recording) => {
     try {
-      const response = await fetch(`/api/recordings/${recording.id}/download`)
+      const response = await fetch(apiUrl(`/api/recordings/${recording.id}/download`))
       if (!response.ok) throw new Error('Download failed')
       
       const blob = await response.blob()
@@ -218,7 +219,7 @@ export default function DashboardRecordingsPage() {
     if (!recordingToDelete) return
     
     try {
-      const response = await fetch(`/api/recordings/${recordingToDelete.id}`, {
+      const response = await fetch(apiUrl(`/api/recordings/${recordingToDelete.id}`), {
         method: 'DELETE'
       })
       

@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
+import { apiUrl } from '@/lib/api'
 import {
   Container,
   Typography,
@@ -111,7 +112,7 @@ export default function PlaybackPage() {
   const loadRecordings = async () => {
     try {
       setIsLoading(true)
-      const response = await fetch('/api/recordings/public')
+      const response = await fetch(apiUrl('/api/recordings/public'))
       if (!response.ok) throw new Error('Failed to load recordings')
       
       const data = await response.json()

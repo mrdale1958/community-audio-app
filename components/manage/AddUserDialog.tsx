@@ -1,5 +1,6 @@
 // components/manage/AddUserDialog.tsx
 import React, { useState } from 'react'
+import { apiUrl } from '@/lib/api'
 import {
   Dialog,
   DialogTitle,
@@ -78,7 +79,7 @@ export function AddUserDialog({ open, onClose, onAddUser }: AddUserDialogProps) 
     setIsSubmitting(true)
     
     try {
-      const response = await fetch('/api/admin/users', {
+      const response = await fetch(apiUrl('/api/admin/users'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)

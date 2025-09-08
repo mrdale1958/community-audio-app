@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { signIn } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
+import { apiUrl } from '@/lib/api'
 import {
   Container,
   Paper,
@@ -74,7 +75,7 @@ export default function SignUpPage() {
 
     try {
       // Register user
-      const response = await fetch('/api/auth/register', {
+      const response = await fetch(apiUrl('/api/auth/register'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { ExhibitionQueue } from '@/types/admin';
+import { apiUrl } from '@/lib/api';
 
 export const useExhibitionQueue = () => {
   const [queue, setQueue] = useState<ExhibitionQueue[]>([]);
@@ -7,7 +8,7 @@ export const useExhibitionQueue = () => {
 
   const fetchQueue = async () => {
     try {
-      const response = await fetch('/api/admin/exhibition-queue');
+      const response = await fetch(apiUrl('/api/admin/exhibition-queue'));
       if (response.ok) {
         const data = await response.json();
         setQueue(data);
@@ -21,7 +22,7 @@ export const useExhibitionQueue = () => {
 
   const addToQueue = async (recordingId: string, position?: number) => {
     try {
-      const response = await fetch('/api/admin/exhibition-queue', {
+      const response = await fetch(apiUrl('/api/admin/exhibition-queue'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ recordingId, position }),
@@ -40,7 +41,7 @@ export const useExhibitionQueue = () => {
 
   const removeFromQueue = async (queueId: string) => {
     try {
-      const response = await fetch(`/api/admin/exhibition-queue/${queueId}`, {
+      const response = await fetch(apiUrl(`/api/admin/exhibition-queue/${queueId}`), {
         method: 'DELETE',
       });
       
@@ -57,7 +58,7 @@ export const useExhibitionQueue = () => {
 
   const reorderQueue = async (queueId: string, newPosition: number) => {
     try {
-      const response = await fetch(`/api/admin/exhibition-queue/${queueId}`, {
+      const response = await fetch(apiUrl(`/api/admin/exhibition-queue/${queueId}`), {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ position: newPosition }),

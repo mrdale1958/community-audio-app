@@ -3,6 +3,7 @@
 import React, { useState, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
+import { apiUrl } from '@/lib/api'
 import {
   Container,
   Typography,
@@ -68,7 +69,7 @@ export default function OfflineContributePage() {
   const loadNameLists = async () => {
     try {
       setIsLoading(true)
-      const response = await fetch('/api/namelists')
+      const response = await fetch(apiUrl('/api/namelists'))
       if (!response.ok) throw new Error('Failed to load name lists')
       
       const data = await response.json()
@@ -85,7 +86,7 @@ export default function OfflineContributePage() {
   // Download PDF for a name list
   const downloadPDF = async (nameListId: string, title: string) => {
     try {
-      const response = await fetch(`/api/namelists/${nameListId}/pdf`)
+      const response = await fetch(apiUrl(`/api/namelists/${nameListId}/pdf`))
       if (!response.ok) throw new Error('Failed to generate PDF')
       
       const blob = await response.blob()
@@ -163,7 +164,7 @@ export default function OfflineContributePage() {
       const controller = new AbortController()
       const timeoutId = setTimeout(() => controller.abort(), 60000) // 60 second timeout
 
-      const response = await fetch('/api/recordings/upload', {
+      const response = await fetch(apiUrl('/api/recordings/upload'), {
         method: 'POST',
         body: formData,
         signal: controller.signal

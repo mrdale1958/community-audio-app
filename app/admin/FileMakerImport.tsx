@@ -3,6 +3,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { apiUrl } from '@/lib/api';
 import {
   Box,
   Card,
@@ -60,7 +61,7 @@ export default function FileMakerImport() {
     setResult(null);
 
     try {
-      const response = await fetch('/api/import/filemaker', {
+      const response = await fetch(apiUrl('/api/import/filemaker'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

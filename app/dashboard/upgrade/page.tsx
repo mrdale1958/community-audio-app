@@ -3,6 +3,7 @@
 import React, { useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
+import { apiUrl } from '@/lib/api'
 import {
   Container,
   Typography,
@@ -47,7 +48,7 @@ export default function UpgradePage() {
     setError('')
     
     try {
-      const response = await fetch(`/api/users/upgrade`, {
+      const response = await fetch(apiUrl(`/api/users/upgrade`), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
