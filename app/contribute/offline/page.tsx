@@ -58,7 +58,8 @@ export default function OfflineContributePage() {
   const { data: session, status } = useSession()
   const router = useRouter()
   
-  const [nameLists, setNameLists] = useState<NameList[]>([])
+  const [currentNameList, setCurrentNameList] = useState<NameList | null>(null)
+  const [allNameLists, setAllNameLists] = useState<NameList[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([])
@@ -73,7 +74,16 @@ export default function OfflineContributePage() {
       if (!response.ok) throw new Error('Failed to load name lists')
       
       const data = await response.json()
-      setNameLists(data.pages || [])
+      const nameLists = data.pages || []
+      setAllNameLists(nameLists)
+      
+      if (nameLists.length === 0) {
+        setError('No name lists available. Please contact an administrator.')
+        return
+      }
+      
+      // Select the first name list by default
+      setCurrentNameList(nameLists[0])
       setError('')
     } catch (err) {
       setError('Failed to load name lists. Please try again.')
@@ -310,6 +320,48 @@ export default function OfflineContributePage() {
       <Typography variant="h5" gutterBottom>
         Available Name Lists
       </Typography>
+
+      {/* Page Navigation */}
+      {allNameLists.length > 1 && currentNameList && (
+        <Card sx={{ mb: 3 }}>
+          <CardContent>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Typography variant="h6">
+                Choose a Page ({allNameLists.length} available)
+              </Typography>
+              <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  onClick={() => {
+                    const currentIndex = allNameLists.findIndex(list => list.id === currentNameList?.id)
+                    const prevIndex = currentIndex > 0 ? currentIndex - 1 : allNameLists.length - 1
+                    setCurrentNameList(allNameLists[prevIndex])
+                  }}
+                  disabled={allNameLists.length <= 1}
+                >
+                  Previous
+                </Button>
+                <Typography variant="body2" sx={{ minWidth: '100px', textAlign: 'center' }}>
+                  {allNameLists.findIndex(list => list.id === currentNameList?.id) + 1} of {allNameLists.length}
+                </Typography>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  onClick={() => {
+                    const currentIndex = allNameLists.findIndex(list => list.id === currentNameList?.id)
+                    const nextIndex = (currentIndex + 1) % allNameLists.length
+                    setCurrentNameList(allNameLists[nextIndex])
+                  }}
+                  disabled={allNameLists.length <= 1}
+                >
+                  Next
+                </Button>
+              </Box>
+            </Box>
+          </CardContent>
+        </Card>
+      )}
       
       {isLoading ? (
         <Box sx={{ textAlign: 'center', py: 4 }}>
@@ -318,24 +370,24 @@ export default function OfflineContributePage() {
         </Box>
       ) : (
         <Grid container spacing={3} sx={{ mb: 4 }}>
-          {nameLists.map((nameList) => (
-            <Grid item xs={12} md={6} key={nameList.id}>
+          {currentNameList && (
+            <Grid item xs={12} key={currentNameList.id}>
               <Card>
                 <CardContent>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
                     <Box>
                       <Typography variant="h6" gutterBottom>
-                        {nameList.title}
+                        {currentNameList.title}
                       </Typography>
                       <Chip 
-                        label={`${nameList.names.length} names`} 
+                        label={`${currentNameList.names.length} names`} 
                         size="small" 
                         color="primary" 
                         sx={{ mr: 1 }}
                       />
-                      {nameList.pageNumber && (
+                      {currentNameList.pageNumber && (
                         <Chip 
-                          label={`Page ${nameList.pageNumber}`} 
+                          label={`Page ${currentNameList.pageNumber}`} 
                           size="small" 
                           variant="outlined"
                         />
@@ -347,7 +399,7 @@ export default function OfflineContributePage() {
                     <Button
                       variant="contained"
                       startIcon={<Download />}
-                      onClick={() => downloadPDF(nameList.id, nameList.title)}
+                      onClick={() => downloadPDF(currentNameList.id, currentNameList.title)}
                       size="small"
                     >
                       Download PDF
@@ -374,7 +426,7 @@ export default function OfflineContributePage() {
                           bgcolor: 'action.hover'
                         }
                       }}
-                      onClick={() => document.getElementById(`file-input-${nameList.id}`)?.click()}
+                      onClick={() => document.getElementById(`file-input-${currentNameList.id}`)?.click()}
                     >
                       <Upload sx={{ fontSize: 40, color: 'text.secondary', mb: 1 }} />
                       <Typography variant="body2" color="text.secondary">
@@ -384,19 +436,19 @@ export default function OfflineContributePage() {
                         Supports MP3, WAV, M4A, and other audio formats
                       </Typography>
                       <input
-                        id={`file-input-${nameList.id}`}
+                        id={`file-input-${currentNameList.id}`}
                         type="file"
                         accept="audio/*"
                         multiple
                         style={{ display: 'none' }}
-                        onChange={(e) => handleFileSelect(e, nameList.id, nameList.title)}
+                        onChange={(e) => handleFileSelect(e, currentNameList.id, currentNameList.title)}
                       />
                     </Paper>
                   </Box>
                 </CardContent>
               </Card>
             </Grid>
-          ))}
+          )}
         </Grid>
       )}
 
