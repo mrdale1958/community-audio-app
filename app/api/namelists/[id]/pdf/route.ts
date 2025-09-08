@@ -56,7 +56,7 @@ export async function GET(
       names = splitPage.names.map(name => 
         typeof name === 'string' ? name : name.name
       )
-      title = splitPage.displayTitle
+      title = `Read My Name - ${splitPage.displayTitle}`
       pageNumber = splitPage.pageNumber
     } else {
       // Handle actual database IDs
@@ -134,44 +134,23 @@ export async function GET(
     const leftColumnX = margin
     const rightColumnX = margin + columnWidth + margin
     const maxY = pageHeight - margin - 20 // Leave space for footer
+    const startY = y
     
-    let leftY = y
-    let rightY = y
-    let currentColumn = 'left'
+    // Calculate how many names per column (split evenly)
+    const namesPerColumn = Math.ceil(names.length / 2)
     
-    for (let i = 0; i < names.length; i++) {
-      const name = names[i]
-      
-      if (currentColumn === 'left') {
-        // Check if we need to switch to right column
-        if (leftY > maxY) {
-          currentColumn = 'right'
-          rightY = y // Reset right column to top
-        } else {
-          pdf.text(name, leftColumnX, leftY)
-          leftY += lineHeight + 1
-          continue
-        }
-      }
-      
-      if (currentColumn === 'right') {
-        // Check if right column is full (should not happen with 20 names)
-        if (rightY > maxY) {
-          // This shouldn't happen with proper sizing, but just in case
-          pdf.addPage()
-          leftY = margin + 20
-          rightY = margin + 20
-          currentColumn = 'left'
-          i-- // Retry this name
-          continue
-        }
-        
-        pdf.text(name, rightColumnX, rightY)
-        rightY += lineHeight + 1
-        
-        // Switch back to left column for next name
-        currentColumn = 'left'
-      }
+    // Left column
+    let currentY = startY
+    for (let i = 0; i < namesPerColumn && i < names.length; i++) {
+      pdf.text(names[i], leftColumnX, currentY)
+      currentY += lineHeight + 1
+    }
+    
+    // Right column
+    currentY = startY
+    for (let i = namesPerColumn; i < names.length; i++) {
+      pdf.text(names[i], rightColumnX, currentY)
+      currentY += lineHeight + 1
     }
 
     // Add footer with metadata (should only be page 1)
@@ -198,7 +177,7 @@ export async function GET(
     return new NextResponse(pdfBuffer, {
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="${title.replace(/[^a-z0-9]/gi, '_')}.pdf"`,
+        'Content-Disposition': `attachment; filename="ReadMyName-${nameListId}.pdf"`,
         'Content-Length': pdfBuffer.length.toString()
       }
     })
