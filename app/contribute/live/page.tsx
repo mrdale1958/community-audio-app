@@ -447,9 +447,6 @@ export default function LiveRecordingPage() {
 
   return (
     <Container maxWidth="md" sx={{ py: 4 }}>
-      <Typography variant="h4" component="h1" gutterBottom textAlign="center">
-        Live Recording
-      </Typography>
 
       {error && (
         <Alert severity="error" sx={{ mb: 3 }}>
