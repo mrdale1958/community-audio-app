@@ -408,15 +408,17 @@ export default function OfflineContributePage() {
                     >
                       Download PDF
                     </Button>
-                    <Button
-                      variant="outlined"
-                      startIcon={<Refresh />}
-                      onClick={loadNameLists}
-                      size="small"
-                      disabled={isLoading}
-                    >
-                      Get Another Page
-                    </Button>
+                    {session?.user?.role === 'ADMIN' && (
+                      <Button
+                        variant="outlined"
+                        startIcon={<Refresh />}
+                        onClick={loadNameLists}
+                        size="small"
+                        disabled={isLoading}
+                      >
+                        Get Another Page
+                      </Button>
+                    )}
                   </Box>
 
                   <Divider sx={{ my: 2 }} />
