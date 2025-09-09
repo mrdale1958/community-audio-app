@@ -62,6 +62,7 @@ export default function OfflineContributePage() {
   const [currentNameList, setCurrentNameList] = useState<NameList | null>(null)
   const [allNameLists, setAllNameLists] = useState<NameList[]>([])
   const [unrecordedCount, setUnrecordedCount] = useState<number>(0)
+  const [isReturningToDownloadedPage, setIsReturningToDownloadedPage] = useState<boolean>(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([])
@@ -73,17 +74,20 @@ export default function OfflineContributePage() {
     try {
       setIsLoading(true)
       
-      // Fetch both name lists and user's existing recordings in parallel
-      const [nameListsResponse, recordingsResponse] = await Promise.all([
+      // Fetch name lists, recordings, and latest PDF download in parallel
+      const [nameListsResponse, recordingsResponse, latestDownloadResponse] = await Promise.all([
         fetch(apiUrl('/api/namelists')),
-        fetch(apiUrl('/api/recordings'))
+        fetch(apiUrl('/api/recordings')),
+        fetch(apiUrl('/api/pdf-downloads/latest'))
       ])
       
       if (!nameListsResponse.ok) throw new Error('Failed to load name lists')
       if (!recordingsResponse.ok) throw new Error('Failed to load recordings')
+      if (!latestDownloadResponse.ok) throw new Error('Failed to load download history')
       
       const nameListsData = await nameListsResponse.json()
       const recordingsData = await recordingsResponse.json()
+      const latestDownloadData = await latestDownloadResponse.json()
       
       const nameLists = nameListsData.pages || []
       const existingRecordings = recordingsData.recordings || []
@@ -105,9 +109,20 @@ export default function OfflineContributePage() {
         return
       }
       
-      // Select a random unrecorded page
-      const randomPage = unrecordedPages[Math.floor(Math.random() * unrecordedPages.length)]
-      setCurrentNameList(randomPage)
+      // Check if user has a previously downloaded page that hasn't been recorded yet
+      const latestDownload = latestDownloadData.downloadedPage
+      if (latestDownload && !recordedNameListIds.has(latestDownload.id)) {
+        // Show the previously downloaded page
+        setCurrentNameList(latestDownload)
+        setIsReturningToDownloadedPage(true)
+        console.log('Showing previously downloaded page:', latestDownload.displayTitle)
+      } else {
+        // Select a random unrecorded page
+        const randomPage = unrecordedPages[Math.floor(Math.random() * unrecordedPages.length)]
+        setCurrentNameList(randomPage)
+        setIsReturningToDownloadedPage(false)
+      }
+      
       setUnrecordedCount(unrecordedPages.length)
       
       // Show progress
@@ -367,10 +382,17 @@ export default function OfflineContributePage() {
           <Typography>Loading name lists...</Typography>
         </Box>
       ) : (
-        <Grid container spacing={3} sx={{ mb: 4 }}>
+        <>
+          {isReturningToDownloadedPage && (
+            <Alert severity="info" sx={{ mb: 3 }}>
+              📎 <strong>Welcome back!</strong> We're showing you the page you previously downloaded so you can upload your recording.
+            </Alert>
+          )}
+
+          <Grid container spacing={3} sx={{ mb: 4 }}>
           {currentNameList && (
             <Grid item xs={12} key={currentNameList.id}>
-              <Card sx={{ border: 2, borderColor: 'primary.main' }}>
+              <Card sx={{ border: 2, borderColor: isReturningToDownloadedPage ? 'info.main' : 'primary.main' }}>
                 <CardContent>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
                     <Box>
@@ -390,12 +412,21 @@ export default function OfflineContributePage() {
                           variant="outlined"
                         />
                       )}
-                      <Chip
-                        label="Unrecorded"
-                        size="small"
-                        color="warning"
-                        variant="outlined"
-                      />
+                      {isReturningToDownloadedPage ? (
+                        <Chip
+                          label="Previously Downloaded"
+                          size="small"
+                          color="info"
+                          variant="filled"
+                        />
+                      ) : (
+                        <Chip
+                          label="Unrecorded"
+                          size="small"
+                          color="warning"
+                          variant="outlined"
+                        />
+                      )}
                     </Box>
                   </Box>
 
@@ -412,7 +443,10 @@ export default function OfflineContributePage() {
                       <Button
                         variant="outlined"
                         startIcon={<Refresh />}
-                        onClick={loadNameLists}
+                        onClick={() => {
+                          setIsReturningToDownloadedPage(false)
+                          loadNameLists()
+                        }}
                         size="small"
                         disabled={isLoading}
                       >
@@ -464,7 +498,8 @@ export default function OfflineContributePage() {
               </Card>
             </Grid>
           )}
-        </Grid>
+          </Grid>
+        </>
       )}
 
       {/* Upload Queue */}

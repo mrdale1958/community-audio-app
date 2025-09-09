@@ -22,6 +22,7 @@ model User {
   recordings Recording[]
   exhibitions Exhibition[] @relation("ExhibitionGallerist")
   createdNameLists NameList[] @relation("NameListCreator")
+  pdfDownloads PdfDownload[]
 
   @@map("users")
 }
@@ -57,6 +58,7 @@ model NameList {
 
   recordings Recording[]
   creator    User?    @relation("NameListCreator", fields: [createdBy], references: [id])
+  pdfDownloads PdfDownload[]
 
   @@map("namelists")
 }
@@ -156,4 +158,17 @@ model ExhibitionPlaybackLog {
   exhibition   Exhibition @relation(fields: [exhibitionId], references: [id], onDelete: Cascade)
 
   @@map("exhibition_playback_logs")
+}
+
+model PdfDownload {
+  id         String   @id @default(cuid())
+  userId     String
+  nameListId String
+  downloadedAt DateTime @default(now())
+  
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  nameList NameList @relation(fields: [nameListId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, nameListId])
+  @@map("pdf_downloads")
 }

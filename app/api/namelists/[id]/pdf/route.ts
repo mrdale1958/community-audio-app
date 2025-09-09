@@ -170,6 +170,39 @@ export async function GET(
       )
     }
 
+    // Track PDF download for user
+    try {
+      let actualNameListId: string;
+      
+      if (nameListId.startsWith('page-')) {
+        // For synthetic pages, we need to find the corresponding actual nameList ID
+        // We'll use the first nameList that contains these names, or create a synthetic record
+        actualNameListId = `synthetic-${nameListId}`;
+      } else {
+        actualNameListId = nameListId;
+      }
+      
+      // Record the download (upsert to handle repeated downloads)
+      await prisma.pdfDownload.upsert({
+        where: {
+          userId_nameListId: {
+            userId: session.user.id,
+            nameListId: actualNameListId
+          }
+        },
+        create: {
+          userId: session.user.id,
+          nameListId: actualNameListId,
+        },
+        update: {
+          downloadedAt: new Date()
+        }
+      });
+    } catch (downloadError) {
+      // Don't fail PDF generation if download tracking fails
+      console.error('Failed to track PDF download:', downloadError);
+    }
+
     // Generate PDF buffer
     const pdfBuffer = Buffer.from(pdf.output('arraybuffer'))
 
