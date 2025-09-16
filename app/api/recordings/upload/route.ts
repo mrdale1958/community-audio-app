@@ -48,15 +48,17 @@ export async function POST(request: NextRequest) {
     const filename = `recording-${timestamp}-${session.user.id}.${fileExtension}`
 
     // Ensure uploads directory exists
-    const uploadsDir = join(process.cwd(), 'uploads')
+    const uploadsDir = process.env.UPLOAD_PATH || join(process.cwd(), 'uploads')
     if (!existsSync(uploadsDir)) {
       await mkdir(uploadsDir, { recursive: true })
     }
-
+console.log('audioFile:', audioFile)
+console.log('audioFile.size:', audioFile.size)
     // Save file to disk
     const filePath = join(uploadsDir, filename)
     const bytes = await audioFile.arrayBuffer()
     const buffer = Buffer.from(bytes)
+    console.log('buffer.length:', buffer.length)
     await writeFile(filePath, buffer)
 
     // Save recording metadata to database

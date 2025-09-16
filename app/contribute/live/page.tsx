@@ -331,6 +331,8 @@ export default function LiveRecordingPage() {
     
     setIsSaving(true)
     try {
+       console.log(audioBlob, audioBlob.size); // Should be > 0
+       // 
       const formData = new FormData()
       formData.append('audio', audioBlob, `recording-${Date.now()}.webm`)
       formData.append('nameListId', currentNameList.id)
