@@ -78,6 +78,12 @@ export default function LiveRecordingPage() {
   
   // Audio playback ref
   const audioRef = useRef<HTMLAudioElement>(null)
+
+  // instructions
+  const INSTRUCTIONS = {
+  RECORDING_INSTRUCTIONS: "Read each name clearly. Pause 2 seconds in between. Read through them before recording to ensure proper pronunciation.",
+  SAVE_INSTRUCTIONS: "Please listen to your recording. If it is satisfactory, Save it. If not, Clear and try again."
+}
   
   // Styling controls state with localStorage persistence
   const [columnCount, setColumnCount] = useState(() => {
@@ -581,107 +587,110 @@ export default function LiveRecordingPage() {
           {/* Recording Controls */}
           <Card sx={{ mb: 2 }}>
             <CardContent sx={{ pb: '16px !important' }}>
-
-              {/* Compact Recording Controls */}
-              <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center', flexWrap: 'wrap', alignItems: 'center' }}>
+              {/* Recording Instructions */}
+              {!isRecording && !audioBlob && (
                 <Typography variant="body2" sx={{ fontWeight: 500, minWidth: { xs: '100%', sm: 'auto' }, textAlign: 'center', mb: { xs: 1, sm: 0 } }}>
-                  Read clearly:
+                  {INSTRUCTIONS.RECORDING_INSTRUCTIONS}
                 </Typography>
-                                
-                {!isRecording && !audioBlob && (
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Button
-                      variant="contained"
-                      size="small"
-                      startIcon={<Mic />}
-                      onClick={startRecording}
-                      disabled={!currentNameList || isLoading}
-                      color="error"
-                    >
-                      Record
-                    </Button>
-                    <IconButton
-                      size="small"
-                      color="primary"
-                      onClick={() => setShowMicHelp(true)}
-                      aria-label="Microphone help"
-                    >
-                      <HelpOutlineIcon />
-                    </IconButton>
-                  </Box>
-                )}
+              )}
 
-                {isRecording && (
-                  <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                    <IconButton
-                      size="small"
-                      onClick={togglePause}
-                      color={isPaused ? "primary" : "default"}
-                    >
-                      {isPaused ? <PlayArrow /> : <Pause />}
-                    </IconButton>
-                    <IconButton
-                      size="small"
-                      onClick={stopRecording}
-                      color="error"
-                    >
-                      <Stop />
-                    </IconButton>
-                    <Typography variant="body2" color={isPaused ? "text.secondary" : "error"}>
-                      {formatTime(recordingTime)} {isPaused && "(Paused)"}
-                    </Typography>
-                  </Box>
-                )}
-
-                {audioBlob && !isRecording && (
-                  <>
-                    <Typography variant="body2" sx={{ fontWeight: 500, minWidth: '100%', textAlign: 'center', mb: 1 }}>
-                      Please listen to your recording. If it is satisfactory, Save it. If not, Clear and try again.
-                    </Typography>
-                    <Box sx={{ display: 'flex', gap: 1 }}>
+              {/* Record/Stop/Pause Controls */}
+              {!audioBlob && (
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, justifyContent: 'center', flexWrap: 'wrap' }}>
+                  {!isRecording && (
+                    <>
                       <Button
-                        size="small"
-                        startIcon={<PlayArrow />}
-                        onClick={togglePlayback}
-                        disabled={!audioUrl}
-                      >
-                        {isPlaying ? 'Stop' : 'Play'}
-                      </Button>
-                      <Button
-                        size="small"
-                        startIcon={<Save />}
-                        onClick={saveRecording}
                         variant="contained"
-                        color="primary"
-                      >
-                        Save
-                      </Button>
-                      <Button
                         size="small"
-                        startIcon={<Refresh />}
-                        onClick={resetRecording}
+                        startIcon={<Mic />}
+                        onClick={startRecording}
+                        disabled={!currentNameList || isLoading}
+                        color="error"
                       >
-                        Clear
+                        Record
                       </Button>
-                    </Box>
-                  </>
-                )}
-                {!isRecording && !audioBlob && session?.user?.role === 'ADMIN' && (
-                  <Button
-                    size="small"
-                    startIcon={<Refresh />}
-                    onClick={loadNameList}
-                    disabled={isLoading}
-                    sx={{ ml: 1 }}
-                  >
-                    New Page
-                  </Button>
-                )}
-              </Box>
+                      <IconButton
+                        size="small"
+                        color="primary"
+                        onClick={() => setShowMicHelp(true)}
+                        aria-label="Microphone help"
+                      >
+                        <HelpOutlineIcon />
+                      </IconButton>
+                    </>
+                  )}
+                  {isRecording && (
+                    <>
+                      <IconButton
+                        size="small"
+                        onClick={togglePause}
+                        color={isPaused ? "primary" : "default"}
+                      >
+                        {isPaused ? <PlayArrow /> : <Pause />}
+                      </IconButton>
+                      <IconButton
+                        size="small"
+                        onClick={stopRecording}
+                        color="error"
+                      >
+                        <Stop />
+                      </IconButton>
+                      <Typography variant="body2" color={isPaused ? "text.secondary" : "error"}>
+                        {formatTime(recordingTime)} {isPaused && "(Paused)"}
+                      </Typography>
+                    </>
+                  )}
+                  {!isRecording && !audioBlob && session?.user?.role === 'ADMIN' && (
+                    <Button
+                      size="small"
+                      startIcon={<Refresh />}
+                      onClick={loadNameList}
+                      disabled={isLoading}
+                      sx={{ ml: 1 }}
+                    >
+                      New Page
+                    </Button>
+                  )}
+                </Box>
+              )}
+
+              {/* Playback/Save/Clear Controls */}
+              {audioBlob && !isRecording && (
+                <>
+                  <Typography variant="body2" sx={{ fontWeight: 500, minWidth: '100%', textAlign: 'center', mb: 1 }}>
+                    {INSTRUCTIONS.SAVE_INSTRUCTIONS}
+                  </Typography>
+                  <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center', flexWrap: 'wrap', alignItems: 'center' }}>
+                    <Button
+                      size="small"
+                      startIcon={<PlayArrow />}
+                      onClick={togglePlayback}
+                      disabled={!audioUrl}
+                    >
+                      {isPlaying ? 'Stop' : 'Play'}
+                    </Button>
+                    <Button
+                      size="small"
+                      startIcon={<Save />}
+                      onClick={saveRecording}
+                      variant="contained"
+                      color="primary"
+                    >
+                      Save
+                    </Button>
+                    <Button
+                      size="small"
+                      startIcon={<Refresh />}
+                      onClick={resetRecording}
+                    >
+                      Clear
+                    </Button>
+                  </Box>
+                </>
+              )}
             </CardContent>
           </Card>
-
-          {/* Names Display */}
+                    {/* Names Display */}
           <Card>
             <CardContent>
             
@@ -819,7 +828,7 @@ export default function LiveRecordingPage() {
             <strong>To make this permanent:</strong><br />
             <ul>
               <li>Chrome: Click the lock icon in the address bar &rarr; Site settings &rarr; Microphone: Allow</li>
-              <li>Safari: Preferences &rarr; Websites &rarr; Microphone &rarr; Allow</li>
+              <li>Safari: Settings &rarr; Websites &rarr; Microphone &rarr; Allow</li>
               <li>Firefox: Click the lock icon &rarr; Permissions &rarr; Allow Microphone</li>
             </ul>
           </Typography>
