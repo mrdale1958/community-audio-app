@@ -43,6 +43,7 @@ import {
   ExpandMore,
   Tune
 } from '@mui/icons-material'
+import HelpOutlineIcon from '@mui/icons-material/HelpOutline'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { apiUrl } from '@/lib/api'
@@ -69,6 +70,11 @@ export default function LiveRecordingPage() {
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null)
   const [audioUrl, setAudioUrl] = useState<string>('')
   const [isPlaying, setIsPlaying] = useState(false)
+
+  // microphone permission state
+  const [micPermission, setMicPermission] = useState<'granted' | 'denied' | 'prompt' | 'unknown'>('unknown');
+  const [showMicHelp, setShowMicHelp] = useState(false);
+
   
   // Audio playback ref
   const audioRef = useRef<HTMLAudioElement>(null)
@@ -331,7 +337,7 @@ export default function LiveRecordingPage() {
     
     setIsSaving(true)
     try {
-       console.log("saving", apiUrl('/api/recordings/upload'), audioBlob, audioBlob.size); // Should be > 0
+       console.log("saving", currentNameList, audioBlob, audioBlob.size); // Should be > 0
        // 
       const formData = new FormData()
       formData.append('audio', audioBlob, `recording-${Date.now()}.webm`)
@@ -430,7 +436,20 @@ export default function LiveRecordingPage() {
     }
   }, [status])
 
-  // Cleanup on unmount
+  // On mount, check permission
+  useEffect(() => {
+    if (navigator.permissions) {
+      navigator.permissions.query({ name: 'microphone' as PermissionName })
+        .then((result) => {
+          setMicPermission(result.state as typeof micPermission);
+          if (result.state !== 'granted') setShowMicHelp(true);
+          result.onchange = () => setMicPermission(result.state as typeof micPermission);
+        })
+        .catch(() => setMicPermission('unknown'));
+    }
+    }, []);
+
+// Cleanup on unmount
   useEffect(() => {
     return () => {
       if (timerRef.current) {
@@ -568,18 +587,28 @@ export default function LiveRecordingPage() {
                 <Typography variant="body2" sx={{ fontWeight: 500, minWidth: { xs: '100%', sm: 'auto' }, textAlign: 'center', mb: { xs: 1, sm: 0 } }}>
                   Read clearly:
                 </Typography>
-                
+                                
                 {!isRecording && !audioBlob && (
-                  <Button
-                    variant="contained"
-                    size="small"
-                    startIcon={<Mic />}
-                    onClick={startRecording}
-                    disabled={!currentNameList || isLoading}
-                    color="error"
-                  >
-                    Record
-                  </Button>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Button
+                      variant="contained"
+                      size="small"
+                      startIcon={<Mic />}
+                      onClick={startRecording}
+                      disabled={!currentNameList || isLoading}
+                      color="error"
+                    >
+                      Record
+                    </Button>
+                    <IconButton
+                      size="small"
+                      color="primary"
+                      onClick={() => setShowMicHelp(true)}
+                      aria-label="Microphone help"
+                    >
+                      <HelpOutlineIcon />
+                    </IconButton>
+                  </Box>
                 )}
 
                 {isRecording && (
@@ -605,34 +634,38 @@ export default function LiveRecordingPage() {
                 )}
 
                 {audioBlob && !isRecording && (
-                  <Box sx={{ display: 'flex', gap: 1 }}>
-                    <Button
-                      size="small"
-                      startIcon={<PlayArrow />}
-                      onClick={togglePlayback}
-                      disabled={!audioUrl}
-                    >
-                      {isPlaying ? 'Stop' : 'Play'}
-                    </Button>
-                    <Button
-                      size="small"
-                      startIcon={<Save />}
-                      onClick={() => setShowSaveDialog(true)}
-                      variant="contained"
-                      color="primary"
-                    >
-                      Save
-                    </Button>
-                    <Button
-                      size="small"
-                      startIcon={<Refresh />}
-                      onClick={resetRecording}
-                    >
-                      Clear
-                    </Button>
-                  </Box>
+                  <>
+                    <Typography variant="body2" sx={{ fontWeight: 500, minWidth: '100%', textAlign: 'center', mb: 1 }}>
+                      Please listen to your recording. If it is satisfactory, Save it. If not, Clear and try again.
+                    </Typography>
+                    <Box sx={{ display: 'flex', gap: 1 }}>
+                      <Button
+                        size="small"
+                        startIcon={<PlayArrow />}
+                        onClick={togglePlayback}
+                        disabled={!audioUrl}
+                      >
+                        {isPlaying ? 'Stop' : 'Play'}
+                      </Button>
+                      <Button
+                        size="small"
+                        startIcon={<Save />}
+                        onClick={saveRecording}
+                        variant="contained"
+                        color="primary"
+                      >
+                        Save
+                      </Button>
+                      <Button
+                        size="small"
+                        startIcon={<Refresh />}
+                        onClick={resetRecording}
+                      >
+                        Clear
+                      </Button>
+                    </Box>
+                  </>
                 )}
-
                 {!isRecording && !audioBlob && session?.user?.role === 'ADMIN' && (
                   <Button
                     size="small"
@@ -777,32 +810,26 @@ export default function LiveRecordingPage() {
         </Card>
       )}
 
-      {/* Save Confirmation Dialog */}
-      <Dialog open={showSaveDialog} onClose={() => !isSaving && setShowSaveDialog(false)}>
-        <DialogTitle>Save Recording</DialogTitle>
+      {/* Microphone Help Dialog */}
+      <Dialog open={showMicHelp} onClose={() => setShowMicHelp(false)}>
+        <DialogTitle>Microphone Access Needed</DialogTitle>
         <DialogContent>
           <Typography>
-            Save this recording of "{currentNameList?.displayTitle}"?
-          </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-            Duration: {formatTime(recordingTime)}
+            Please allow microphone access when prompted.<br />
+            <strong>To make this permanent:</strong><br />
+            <ul>
+              <li>Chrome: Click the lock icon in the address bar &rarr; Site settings &rarr; Microphone: Allow</li>
+              <li>Safari: Preferences &rarr; Websites &rarr; Microphone &rarr; Allow</li>
+              <li>Firefox: Click the lock icon &rarr; Permissions &rarr; Allow Microphone</li>
+            </ul>
           </Typography>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setShowSaveDialog(false)} disabled={isSaving}>
-            Cancel
-          </Button>
-          <Button 
-            onClick={saveRecording} 
-            variant="contained" 
-            disabled={isSaving}
-            startIcon={<Save />}
-          >
-            {isSaving ? 'Saving...' : 'Save'}
-          </Button>
+          <Button onClick={() => setShowMicHelp(false)}>OK</Button>
         </DialogActions>
       </Dialog>
 
+     
       {/* Success Message */}
       <Snackbar
         open={showSuccessMessage}
