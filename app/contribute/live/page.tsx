@@ -346,17 +346,17 @@ export default function LiveRecordingPage() {
       
       if (!response.ok) {
         let errorText = `Failed to save recording. Status: ${response.status} ${response.statusText}`
-        try {
-          const errorBody = await response.text()
-          errorText += `\nResponse: ${errorBody}`
-        } catch (e) {
-          // Ignore if body can't be read
+         try {
+            const errorBody = await response.text()
+            errorText += `\nResponse: ${errorBody}`
+          } catch (e) {
+            // Ignore if body can't be read
+          }
+          throw new Error(errorText)
         }
-        throw new Error(errorText)
-      }
-      
-      const result = await response.json()
-      setShowSaveDialog(false)
+
+  const result = await response.json()
+  setShowSaveDialog(false)
       
       // Reset for next recording
       resetRecording()
@@ -521,4 +521,304 @@ export default function LiveRecordingPage() {
                       <FormLabel>Font Size</FormLabel>
                       <Slider
                         value={fontSize}
-   
+                        onChange={(_, value) => setFontSize(value as number)}
+                        min={12}
+                        max={24}
+                        step={1}
+                        marks={[{value: 16, label: '16px'}]}
+                        size="small"
+                      />
+                    </FormControl>
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <FormGroup row>
+                      <FormControlLabel
+                        control={
+                          <Switch
+                            checked={fontWeight === 'bold'}
+                            onChange={(e) => setFontWeight(e.target.checked ? 'bold' : 'normal')}
+                            size="small"
+                          />
+                        }
+                        label="Bold"
+                      />
+                      <FormControlLabel
+                        control={
+                          <Switch
+                            checked={showBorder}
+                            onChange={(e) => setShowBorder(e.target.checked)}
+                            size="small"
+                          />
+                        }
+                        label="Borders"
+                      />
+                    </FormGroup>
+                  </Grid>
+                </Grid>
+              </AccordionDetails>
+            </Accordion>
+          </Card>
+
+          {/* Recording Controls */}
+          <Card sx={{ mb: 2 }}>
+            <CardContent sx={{ pb: '16px !important' }}>
+
+              {/* Compact Recording Controls */}
+              <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center', flexWrap: 'wrap', alignItems: 'center' }}>
+                <Typography variant="body2" sx={{ fontWeight: 500, minWidth: { xs: '100%', sm: 'auto' }, textAlign: 'center', mb: { xs: 1, sm: 0 } }}>
+                  Read clearly:
+                </Typography>
+                
+                {!isRecording && !audioBlob && (
+                  <Button
+                    variant="contained"
+                    size="small"
+                    startIcon={<Mic />}
+                    onClick={startRecording}
+                    disabled={!currentNameList || isLoading}
+                    color="error"
+                  >
+                    Record
+                  </Button>
+                )}
+
+                {isRecording && (
+                  <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                    <IconButton
+                      size="small"
+                      onClick={togglePause}
+                      color={isPaused ? "primary" : "default"}
+                    >
+                      {isPaused ? <PlayArrow /> : <Pause />}
+                    </IconButton>
+                    <IconButton
+                      size="small"
+                      onClick={stopRecording}
+                      color="error"
+                    >
+                      <Stop />
+                    </IconButton>
+                    <Typography variant="body2" color={isPaused ? "text.secondary" : "error"}>
+                      {formatTime(recordingTime)} {isPaused && "(Paused)"}
+                    </Typography>
+                  </Box>
+                )}
+
+                {audioBlob && !isRecording && (
+                  <Box sx={{ display: 'flex', gap: 1 }}>
+                    <Button
+                      size="small"
+                      startIcon={<PlayArrow />}
+                      onClick={togglePlayback}
+                      disabled={!audioUrl}
+                    >
+                      {isPlaying ? 'Stop' : 'Play'}
+                    </Button>
+                    <Button
+                      size="small"
+                      startIcon={<Save />}
+                      onClick={() => setShowSaveDialog(true)}
+                      variant="contained"
+                      color="primary"
+                    >
+                      Save
+                    </Button>
+                    <Button
+                      size="small"
+                      startIcon={<Refresh />}
+                      onClick={resetRecording}
+                    >
+                      Clear
+                    </Button>
+                  </Box>
+                )}
+
+                {!isRecording && !audioBlob && session?.user?.role === 'ADMIN' && (
+                  <Button
+                    size="small"
+                    startIcon={<Refresh />}
+                    onClick={loadNameList}
+                    disabled={isLoading}
+                    sx={{ ml: 1 }}
+                  >
+                    New Page
+                  </Button>
+                )}
+              </Box>
+            </CardContent>
+          </Card>
+
+          {/* Names Display */}
+          <Card>
+            <CardContent>
+            
+            <Paper sx={{ p: verticalSpacing, bgcolor: 'grey.50', border: showBorder ? 1 : 0, borderColor: 'divider' }}>
+              <Grid container spacing={horizontalSpacing}>
+                {currentNameList.names.map((nameObj, index) => (
+                  <Grid 
+                    item 
+                    xs={12 / Math.min(columnCount, 2)} 
+                    md={12 / columnCount} 
+                    key={index}
+                  >
+                    <Typography
+                      variant="body1"
+                      sx={{ 
+                        p: verticalSpacing,
+                        bgcolor: 'background.paper',
+                        border: showBorder ? 1 : 0,
+                        borderColor: 'divider',
+                        borderRadius: 1,
+                        textAlign: 'center',
+                        minHeight: fontSize * 2.5,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        wordBreak: 'break-word',
+                        hyphens: 'auto',
+                        fontSize: fontSize,
+                        fontWeight: fontWeight,
+                        lineHeight: 1.3
+                      }}
+                    >
+                      {typeof nameObj === "string" ? nameObj : nameObj.name}
+                    </Typography>
+                  </Grid>
+                ))}
+              </Grid>
+            </Paper>
+            
+
+          </CardContent>
+        </Card>
+        </>
+      )}
+
+      {/* Playback and Save */}
+      {audioBlob && (
+        <Card>
+          <CardContent>
+            <Typography variant="h6" gutterBottom>
+              Recording Complete
+            </Typography>
+            
+            <Box sx={{ mb: 2 }}>
+              {audioUrl ? (
+                <Box>
+                  <audio 
+                    ref={audioRef}
+                    controls 
+                    src={audioUrl} 
+                    style={{ width: '100%' }}
+                    onPlay={() => setIsPlaying(true)}
+                    onPause={() => setIsPlaying(false)}
+                    onEnded={() => setIsPlaying(false)}
+                    onError={(e) => {
+                      console.error('Audio playback error:', e)
+                      setError('Audio preview unavailable in this browser, but recording is valid for saving')
+                    }}
+                    onLoadedData={() => {
+                      // Clear any previous errors when audio loads successfully
+                      if (error.includes('preview unavailable')) {
+                        setError('')
+                      }
+                    }}
+                  />
+                  {audioBlob && (
+                    <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                      Format: {audioBlob.type} • Size: {(audioBlob.size / 1024).toFixed(1)} KB • Duration: {formatTime(recordingTime)}
+                    </Typography>
+                  )}
+                </Box>
+              ) : audioBlob ? (
+                <Box>
+                  <Alert severity="info" sx={{ mb: 1 }}>
+                    Recording completed successfully! Preview not available in this browser, but your audio is ready to save.
+                  </Alert>
+                  <Typography variant="body2" color="text.secondary">
+                    Format: {audioBlob.type} • Size: {(audioBlob.size / 1024).toFixed(1)} KB • Duration: {formatTime(recordingTime)}
+                  </Typography>
+                </Box>
+              ) : null}
+            </Box>
+
+            <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', flexWrap: 'wrap' }}>
+              <Button
+                variant="contained"
+                startIcon={<Save />}
+                onClick={() => setShowSaveDialog(true)}
+                color="success"
+              >
+                Save Recording
+              </Button>
+
+              <Button
+                variant="outlined"
+                startIcon={<Download />}
+                onClick={() => {
+                  const a = document.createElement('a')
+                  a.href = audioUrl
+                  a.download = `recording-${Date.now()}.webm`
+                  a.click()
+                }}
+              >
+                Download
+              </Button>
+
+              <Button
+                variant="outlined"
+                onClick={resetRecording}
+                color="error"
+              >
+                Discard
+              </Button>
+            </Box>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Save Confirmation Dialog */}
+      <Dialog open={showSaveDialog} onClose={() => !isSaving && setShowSaveDialog(false)}>
+        <DialogTitle>Save Recording</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Save this recording of "{currentNameList?.displayTitle}"?
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+            Duration: {formatTime(recordingTime)}
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setShowSaveDialog(false)} disabled={isSaving}>
+            Cancel
+          </Button>
+          <Button 
+            onClick={saveRecording} 
+            variant="contained" 
+            disabled={isSaving}
+            startIcon={<Save />}
+          >
+            {isSaving ? 'Saving...' : 'Save'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Success Message */}
+      <Snackbar
+        open={showSuccessMessage}
+        autoHideDuration={4000}
+        onClose={() => setShowSuccessMessage(false)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert 
+          onClose={() => setShowSuccessMessage(false)} 
+          severity="success" 
+          variant="filled"
+          sx={{ width: '100%' }}
+        >
+          Recording saved successfully! You can now make another recording.
+        </Alert>
+      </Snackbar>
+    </Container>
+  )
+}
