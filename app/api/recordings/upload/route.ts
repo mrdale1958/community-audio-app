@@ -46,6 +46,7 @@ export async function POST(request: NextRequest) {
     const timestamp = Date.now()
     const fileExtension = audioFile.name.split('.').pop() || 'webm'
     const filename = `recording-${timestamp}-${session.user.id}.${fileExtension}`
+console.log('filename:', filename)
 
     // Ensure uploads directory exists
     const uploadsDir = process.env.UPLOAD_PATH || join(process.cwd(), 'uploads')
