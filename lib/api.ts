@@ -16,7 +16,11 @@ const getBasePath = () => {
 
 export const apiUrl = (path: string): string => {
   const basePath = getBasePath();
-  const url = `${basePath}${path}`;
+  let url = `${basePath}${path}`;
+  // Ensure trailing slash for API endpoints
+  if (!url.endsWith('/')) {
+    url += '/';
+  }
   console.log(`[API URL DEBUG] Original: ${path}, BasePath: ${basePath}, Final: ${url}`);
   return url;
 };
