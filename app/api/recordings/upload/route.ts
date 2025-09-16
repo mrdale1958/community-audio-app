@@ -8,6 +8,7 @@ import { authOptions } from '@/lib/auth'
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('Request received:', request);  
     const session = await getServerSession(authOptions)
     
     if (!session?.user?.id) {
@@ -16,13 +17,15 @@ export async function POST(request: NextRequest) {
         { status: 401 }
       )
     }
-
+    console.log('Session user ID:', session.user.id);
     const formData = await request.formData()
     const audioFile = formData.get('audio') as File
     const nameListId = formData.get('nameListId') as string
     const method = formData.get('method') as string
     const duration = formData.get('duration') as string
+    console.log('Form Data - nameListId:', nameListId, 'method:', method, 'duration:', duration);
 
+    // Validate required fields
     if (!audioFile || !nameListId || !method) {
       return NextResponse.json(
         { error: 'Missing required fields: audio, nameListId, method' },
