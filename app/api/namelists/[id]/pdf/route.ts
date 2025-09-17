@@ -11,7 +11,6 @@ export async function GET(
 ) {
   try {
     const session = await getServerSession(authOptions)
-    
     if (!session) {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -21,64 +20,40 @@ export async function GET(
 
     const { id: nameListId } = await params
 
-    let names: string[];
-    let title: string;
-    let pageNumber: number | null = null;
-
-    // Check if this is a synthetic page ID (e.g., "page-1") or actual database ID
-    if (nameListId.startsWith('page-')) {
-      // Handle synthetic page IDs from pageSplitter
-      const nameLists = await prisma.nameList.findMany({
-        orderBy: {
-          pageNumber: 'asc'
-        }
-      })
-
-      // Convert to OriginalPage format
-      const originalPages: OriginalPage[] = nameLists.map(list => ({
-        id: list.id,
-        title: list.title,
-        names: JSON.parse(list.names),
-        pageNumber: list.pageNumber || 0
-      }))
-
-      // Get the specific split page
-      const splitPage = pageSplitter.getSplitPageById(originalPages, nameListId)
-      
-      if (!splitPage) {
-        return NextResponse.json(
-          { error: 'Page not found' },
-          { status: 404 }
-        )
-      }
-
-      // Convert names to strings (handle both string and object formats)
-      names = splitPage.names.map(name => 
-        typeof name === 'string' ? name : name.name
+    // Only handle synthetic page IDs (e.g., "page-1")
+    if (!nameListId.startsWith('page-')) {
+      return NextResponse.json(
+        { error: 'Invalid page ID' },
+        { status: 400 }
       )
-      title = `Read My Name - ${splitPage.displayTitle}`
-      pageNumber = splitPage.pageNumber
-    } else {
-      // Handle actual database IDs
-      const nameList = await prisma.nameList.findUnique({
-        where: { id: nameListId }
-      })
-
-      if (!nameList) {
-        return NextResponse.json(
-          { error: 'Name list not found' },
-          { status: 404 }
-        )
-      }
-
-      // Parse the names JSON and convert to strings
-      const parsedNames = JSON.parse(nameList.names)
-      names = Array.isArray(parsedNames) 
-        ? parsedNames.map(name => typeof name === 'string' ? name : name.name)
-        : []
-      title = nameList.title
-      pageNumber = nameList.pageNumber
     }
+
+    // Get all names from the DB and split into synthetic pages
+    const nameLists = await prisma.nameList.findMany({
+      orderBy: { pageNumber: 'asc' }
+    })
+
+    const originalPages: OriginalPage[] = nameLists.map(list => ({
+      id: list.id,
+      title: list.title,
+      names: JSON.parse(list.names),
+      pageNumber: list.pageNumber || 0
+    }))
+
+    const splitPage = pageSplitter.getSplitPageById(originalPages, nameListId)
+    if (!splitPage) {
+      return NextResponse.json(
+        { error: 'Page not found' },
+        { status: 404 }
+      )
+    }
+
+    // Convert names to strings
+    const names = splitPage.names.map(name =>
+      typeof name === 'string' ? name : name.name
+    )
+    const title = `Read My Name - ${splitPage.displayTitle}`
+    const pageNumber = splitPage.pageNumber
 
     // Create PDF
     const pdf = new jsPDF()
@@ -113,13 +88,11 @@ export async function GET(
         pdf.addPage()
         y = margin
       }
-      
       if (instruction === 'Instructions for Recording:') {
         pdf.setFont('helvetica', 'bold')
       } else {
         pdf.setFont('helvetica', 'normal')
       }
-      
       pdf.text(instruction, margin, y)
       y += lineHeight
     }
@@ -129,23 +102,19 @@ export async function GET(
     // Names in two columns
     pdf.setFontSize(12)
     pdf.setFont('helvetica', 'normal')
-
-    const columnWidth = (pageWidth - 3 * margin) / 2 // Two columns with margin between
+    const columnWidth = (pageWidth - 3 * margin) / 2
     const leftColumnX = margin
     const rightColumnX = margin + columnWidth + margin
-    const maxY = pageHeight - margin - 20 // Leave space for footer
+    const maxY = pageHeight - margin - 20
     const startY = y
-    
-    // Calculate how many names per column (split evenly)
     const namesPerColumn = Math.ceil(names.length / 2)
-    
+
     // Left column
     let currentY = startY
     for (let i = 0; i < namesPerColumn && i < names.length; i++) {
       pdf.text(names[i], leftColumnX, currentY)
       currentY += lineHeight + 1
     }
-    
     // Right column
     currentY = startY
     for (let i = namesPerColumn; i < names.length; i++) {
@@ -153,7 +122,7 @@ export async function GET(
       currentY += lineHeight + 1
     }
 
-    // Add footer with metadata (should only be page 1)
+    // Footer
     pdf.setFontSize(8)
     pdf.setFont('helvetica', 'italic')
     pdf.text(
@@ -161,7 +130,6 @@ export async function GET(
       margin,
       pageHeight - 10
     )
-    
     if (pageNumber) {
       pdf.text(
         `List Page: ${pageNumber}`,
@@ -172,17 +140,7 @@ export async function GET(
 
     // Track PDF download for user
     try {
-      let actualNameListId: string;
-      
-      if (nameListId.startsWith('page-')) {
-        // For synthetic pages, we need to find the corresponding actual nameList ID
-        // We'll use the first nameList that contains these names, or create a synthetic record
-        actualNameListId = `synthetic-${nameListId}`;
-      } else {
-        actualNameListId = nameListId;
-      }
-      
-      // Record the download (upsert to handle repeated downloads)
+      const actualNameListId = `synthetic-${nameListId}`
       await prisma.pdfDownload.upsert({
         where: {
           userId_nameListId: {
@@ -197,16 +155,13 @@ export async function GET(
         update: {
           downloadedAt: new Date()
         }
-      });
+      })
     } catch (downloadError) {
-      // Don't fail PDF generation if download tracking fails
-      console.error('Failed to track PDF download:', downloadError);
+      console.error('Failed to track PDF download:', downloadError)
     }
 
-    // Generate PDF buffer
+    // Return PDF
     const pdfBuffer = Buffer.from(pdf.output('arraybuffer'))
-
-    // Return PDF with proper headers
     return new NextResponse(pdfBuffer, {
       headers: {
         'Content-Type': 'application/pdf',

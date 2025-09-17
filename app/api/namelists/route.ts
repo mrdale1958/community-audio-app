@@ -7,7 +7,6 @@ import { pageSplitter, type OriginalPage } from '@/lib/pageSplitter'
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
-    
     if (!session) {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -15,25 +14,24 @@ export async function GET(request: NextRequest) {
       )
     }
 
+    // Get all names from DB, treat as source list
     const nameLists = await prisma.nameList.findMany({
-      orderBy: {
-        pageNumber: 'asc'
-      }
+      orderBy: { pageNumber: 'asc' }
     })
 
-    // Parse the JSON names and convert to OriginalPage format
-    const originalPages: OriginalPage[] = nameLists.map(list => ({
+    // Parse and flatten all names into one array
+    const allNames: OriginalPage[] = nameLists.map(list => ({
       id: list.id,
       title: list.title,
       names: JSON.parse(list.names),
       pageNumber: list.pageNumber || 0
     }))
 
-    // Split pages into 20-name chunks
-    const splitPages = pageSplitter.splitPages(originalPages)
+    // Use pageSplitter to create synthetic pages (chunks of 20)
+    const splitPages = pageSplitter.splitPages(allNames)
 
     // Add statistics for debugging
-    const stats = pageSplitter.getStats(originalPages)
+    const stats = pageSplitter.getStats(allNames)
     console.log('Page split stats:', stats)
 
     return NextResponse.json({
@@ -53,7 +51,6 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
-    
     if (!session) {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -61,7 +58,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Check if user has permission to create name lists
+    // Only allow admins/managers to add names to the source list
     if (session.user.role !== 'ADMIN' && session.user.role !== 'MANAGER') {
       return NextResponse.json(
         { error: 'Insufficient permissions' },
@@ -79,6 +76,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Add a new source list (not a page)
     const nameList = await prisma.nameList.create({
       data: {
         title,

@@ -5,6 +5,7 @@ import { join } from 'path'
 import { prisma } from '@/lib/prisma'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
+import { pageSplitter, type OriginalPage } from '@/lib/pageSplitter'
 
 export async function POST(request: NextRequest) {
   try {
@@ -33,14 +34,24 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Validate nameList exists
-    const nameList = await prisma.nameList.findUnique({
-      where: { id: nameListId }
-    })
-
-    if (!nameList) {
+    // Validate synthetic page exists
+    if (!nameListId.startsWith('page-')) {
       return NextResponse.json(
-        { error: 'Name list not found' },
+        { error: 'Invalid page ID' },
+        { status: 400 }
+      )
+    }
+    const nameLists = await prisma.nameList.findMany({ orderBy: { pageNumber: 'asc' } })
+    const originalPages: OriginalPage[] = nameLists.map(list => ({
+      id: list.id,
+      title: list.title,
+      names: JSON.parse(list.names),
+      pageNumber: list.pageNumber || 0
+    }))
+    const splitPage = pageSplitter.getSplitPageById(originalPages, nameListId)
+    if (!splitPage) {
+      return NextResponse.json(
+        { error: 'Synthetic page not found' },
         { status: 404 }
       )
     }
@@ -76,7 +87,7 @@ console.log('audioFile.size:', audioFile.size)
         method,
         status: 'PENDING',
         userId: session.user.id,
-        nameListId
+        nameListId, // This is now a synthetic page ID
       },
       include: {
         user: {
@@ -84,12 +95,6 @@ console.log('audioFile.size:', audioFile.size)
             id: true,
             name: true,
             email: true
-          }
-        },
-        nameList: {
-          select: {
-            id: true,
-            title: true
           }
         }
       }
@@ -99,10 +104,7 @@ console.log('audioFile.size:', audioFile.size)
       success: true,
       recording: {
         ...recording,
-        nameList: {
-          ...recording.nameList,
-          names: JSON.parse(nameList.names)
-        }
+        syntheticPage: splitPage
       }
     }, { status: 201 })
 
