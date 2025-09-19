@@ -175,6 +175,8 @@ export class PageManager {
     const startPage = options.startPage || CONFIG.PAGE.DEFAULT_START_PAGE;
     const totalPages = Math.ceil(allNames.length / CONFIG.PAGE.NAMES_PER_PAGE);
     const pages: NameList[] = [];
+    console.log('First 5 names:', allNames.slice(0, 5));
+    console.log('Last 5 names:', allNames.slice(-5));
 
     for (let i = 0; i < totalPages; i++) {
       const pageNumber = startPage + i;
@@ -190,7 +192,9 @@ export class PageManager {
 
       pages.push(page);
     }
-
+pages.forEach((page, idx) => {
+  console.log(`Page ${idx + 1} (${page.pageNumber}): ${JSON.parse(page.names).length} names`);
+});
     return pages;
   }
 
