@@ -306,7 +306,7 @@ export class PageManager {
     });
 
     return lastPage 
-      ? lastPage.pageNumber + 1 
+      ? (lastPage.pageNumber ?? 0) + 1
       : CONFIG.PAGE.DEFAULT_START_PAGE;
   }
 
