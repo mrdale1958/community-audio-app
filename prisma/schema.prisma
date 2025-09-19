@@ -47,7 +47,7 @@ model NameList {
   id         String   @id @default(cuid())
   title      String
   names      String   // JSON array of names
-  pageNumber Int
+  pageNumber Int?
   seriesId   String?  // Optional series/collection identifier
   createdBy  String?  // User who created this name list
   description String? // Description of this name list
@@ -79,12 +79,11 @@ model Recording {
   updatedAt         DateTime @updatedAt
 
   userId     String
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user       User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
   nameId     String?
   name       Name?     @relation(fields: [nameId], references: [id], onDelete: Cascade)
   // Legacy support during migration
-  nameListId String?
-  nameList   NameList? @relation(fields: [nameListId], references: [id], onDelete: Cascade)
+  nameListId String
 
   exhibitionQueueItems ExhibitionQueueItem[]
 
