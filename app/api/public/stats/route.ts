@@ -127,7 +127,7 @@ export async function GET(request: NextRequest) {
       ...recentApprovals.map(r => ({
         id: r.id,
         type: 'approval' as const,
-        contributorName: r.user.name,
+        contributorName: r.user?.name ?? 'Unknown',
         nameListTitle: r.nameList?.title || `Name ${r.name?.importOrder || 'Unknown'}`,
         createdAt: r.updatedAt.toISOString()
       })),
