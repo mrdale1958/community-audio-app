@@ -75,7 +75,18 @@ export default function LiveRecordingPage() {
   const [micPermission, setMicPermission] = useState<'granted' | 'denied' | 'prompt' | 'unknown'>('unknown');
   const [showMicHelp, setShowMicHelp] = useState(false);
 
-  
+  // check for permanent mic access
+  useEffect(() => {
+  if (navigator.permissions) {
+    navigator.permissions.query({ name: 'microphone' as PermissionName })
+      .then((result) => {
+        setMicPermission(result.state as typeof micPermission);
+        result.onchange = () => setMicPermission(result.state as typeof micPermission);
+      })
+      .catch(() => setMicPermission('unknown'));
+  }
+}, []);
+
   // Audio playback ref
   const audioRef = useRef<HTMLAudioElement>(null)
 
@@ -609,15 +620,16 @@ export default function LiveRecordingPage() {
                       >
                         Record
                       </Button>
-                      <IconButton
-                        size="small"
-                        color="primary"
-                        onClick={() => setShowMicHelp(true)}
-                        aria-label="Microphone help"
-                      >
-                        <HelpOutlineIcon />
-                      </IconButton>
-                    </>
+                      {micPermission !== 'granted' && (
+                        <IconButton
+                          size="small"
+                          color="primary"
+                          onClick={() => setShowMicHelp(true)}
+                          aria-label="Microphone help"
+                        >
+                          <HelpOutlineIcon />
+                        </IconButton>
+                      )}                    </>
                   )}
                   {isRecording && (
                     <>
