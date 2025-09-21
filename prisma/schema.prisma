@@ -84,7 +84,7 @@ model Recording {
   name       Name?     @relation(fields: [nameId], references: [id], onDelete: Cascade)
   // Legacy support during migration
   nameListId String
-  nameList      NameList? @relation(fields: [nameListId], references: [id])
+  //nameList      NameList? @relation(fields: [nameListId], references: [id])
 
   exhibitionQueueItems ExhibitionQueueItem[]
 
