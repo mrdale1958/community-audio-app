@@ -30,13 +30,13 @@ export async function GET(request: NextRequest) {
     }
 
     if (method && method !== 'ALL') {
-      where.recordingMethod = method;
+      where.method = method;
     }
 
     if (search) {
       where.OR = [
         // If you want to search by synthetic page ID or title, adjust here
-        { nameListId: { contains: search, mode: 'insensitive' } },
+        { nameListId: { contains: search } },
         // Remove the nested nameList.title search
       ];
     }
