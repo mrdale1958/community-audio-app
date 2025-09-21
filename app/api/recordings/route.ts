@@ -34,23 +34,16 @@ export async function GET(request: NextRequest) {
 
     if (search) {
       where.OR = [
-        { title: { contains: search, mode: 'insensitive' } },
-        { nameList: { title: { contains: search, mode: 'insensitive' } } },
+        // If you want to search by synthetic page ID or title, adjust here
+        { nameListId: { contains: search, mode: 'insensitive' } },
+        // Remove the nested nameList.title search
       ];
     }
 
     const [recordings, total] = await Promise.all([
       prisma.recording.findMany({
         where,
-        include: {
-          nameList: {
-            select: {
-              id: true,
-              title: true,
-              pageNumber: true,
-            },
-          },
-        },
+        // Remove the nameList include
         orderBy: { createdAt: 'desc' },
         skip: (page - 1) * limit,
         take: limit,
