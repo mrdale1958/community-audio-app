@@ -19,10 +19,10 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  recordings Recording[]
-  exhibitions Exhibition[] @relation("ExhibitionGallerist")
-  createdNameLists NameList[] @relation("NameListCreator")
-  pdfDownloads PdfDownload[]
+  recordings       Recording[]
+  exhibitions      Exhibition[]  @relation("ExhibitionGallerist")
+  createdNameLists NameList[]    @relation("NameListCreator")
+  pdfDownloads     PdfDownload[]
 
   @@map("users")
 }
@@ -31,9 +31,9 @@ model Name {
   id             String   @id @default(cuid())
   name           String
   importOrder    Int      @unique // Original sequence from FileMaker (1-91,897)
-  artifactNumber String?  // AIDS Memorial Quilt artifact number
-  blockNumber    String?  // AIDS Memorial Quilt block number
-  originalPageId String?  // Reference to original NameList for migration tracking
+  artifactNumber String? // AIDS Memorial Quilt artifact number
+  blockNumber    String? // AIDS Memorial Quilt block number
+  originalPageId String? // Reference to original NameList for migration tracking
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
@@ -44,44 +44,44 @@ model Name {
 }
 
 model NameList {
-  id         String   @id @default(cuid())
-  title      String
-  names      String   // JSON array of names
-  pageNumber Int?
-  seriesId   String?  // Optional series/collection identifier
-  createdBy  String?  // User who created this name list
+  id          String   @id @default(cuid())
+  title       String
+  names       String // JSON array of names
+  pageNumber  Int?
+  seriesId    String? // Optional series/collection identifier
+  createdBy   String? // User who created this name list
   description String? // Description of this name list
-  totalPages Int?     // Total pages in the series (for import metadata)
-  namesCount Int?     // Number of names in this page (for performance)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  totalPages  Int? // Total pages in the series (for import metadata)
+  namesCount  Int? // Number of names in this page (for performance)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   //recordings Recording[]
-  creator    User?    @relation("NameListCreator", fields: [createdBy], references: [id])
+  creator      User?         @relation("NameListCreator", fields: [createdBy], references: [id])
   pdfDownloads PdfDownload[]
 
   @@map("namelists")
 }
 
 model Recording {
-  id                String   @id @default(cuid())
-  filename          String
-  originalFilename  String
-  filesize          Int
-  mimetype          String
-  fileHash          String?  // SHA-256 hash for integrity checking
-  isCorrupted       Boolean  @default(false)
-  lastQualityCheck  DateTime?
-  duration          Float?   // duration in seconds
-  status            String   @default("PENDING") // PENDING|APPROVED|REJECTED
-  method            String   // LIVE|UPLOAD
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  id               String    @id @default(cuid())
+  filename         String
+  originalFilename String
+  filesize         Int
+  mimetype         String
+  fileHash         String? // SHA-256 hash for integrity checking
+  isCorrupted      Boolean   @default(false)
+  lastQualityCheck DateTime?
+  duration         Float? // duration in seconds
+  status           String    @default("PENDING") // PENDING|APPROVED|REJECTED
+  method           String // LIVE|UPLOAD
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
   userId     String
-  user       User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user       User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
   nameId     String?
-  name       Name?     @relation(fields: [nameId], references: [id], onDelete: Cascade)
+  name       Name?   @relation(fields: [nameId], references: [id], onDelete: Cascade)
   // Legacy support during migration
   nameListId String
   //nameList      NameList? @relation(fields: [nameListId], references: [id])
@@ -92,17 +92,17 @@ model Recording {
 }
 
 model Exhibition {
-  id              String    @id @default(cuid())
-  title           String
-  description     String?
-  startDate       DateTime
-  endDate         DateTime
-  isActive        Boolean   @default(false)
-  psaFrequency    Int       @default(50) // Insert PSA every N recordings
-  galleryHours    String    // JSON: [{ day: 0-6, open: "09:00", close: "17:00" }]
-  settings        String?   // JSON for additional exhibition settings
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  id           String   @id @default(cuid())
+  title        String
+  description  String?
+  startDate    DateTime
+  endDate      DateTime
+  isActive     Boolean  @default(false)
+  psaFrequency Int      @default(50) // Insert PSA every N recordings
+  galleryHours String // JSON: [{ day: 0-6, open: "09:00", close: "17:00" }]
+  settings     String? // JSON for additional exhibition settings
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   galleristId String
   gallerist   User   @relation("ExhibitionGallerist", fields: [galleristId], references: [id])
@@ -115,13 +115,13 @@ model Exhibition {
 }
 
 model ExhibitionPSA {
-  id           String @id @default(cuid())
-  filename     String
-  title        String
-  filesize     Int
-  duration     Float? // duration in seconds
-  isActive     Boolean @default(true)
-  createdAt    DateTime @default(now())
+  id        String   @id @default(cuid())
+  filename  String
+  title     String
+  filesize  Int
+  duration  Float? // duration in seconds
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
 
   exhibitionId String
   exhibition   Exhibition @relation(fields: [exhibitionId], references: [id], onDelete: Cascade)
@@ -130,12 +130,12 @@ model ExhibitionPSA {
 }
 
 model ExhibitionQueueItem {
-  id           String   @id @default(cuid())
-  position     Int      // Current position in queue
-  hasPlayed    Boolean  @default(false)
-  playedAt     DateTime?
-  queueCycle   Int      @default(1) // Which cycle through all recordings
-  createdAt    DateTime @default(now())
+  id         String    @id @default(cuid())
+  position   Int // Current position in queue
+  hasPlayed  Boolean   @default(false)
+  playedAt   DateTime?
+  queueCycle Int       @default(1) // Which cycle through all recordings
+  createdAt  DateTime  @default(now())
 
   exhibitionId String
   exhibition   Exhibition @relation(fields: [exhibitionId], references: [id], onDelete: Cascade)
@@ -148,10 +148,10 @@ model ExhibitionQueueItem {
 
 model ExhibitionPlaybackLog {
   id         String   @id @default(cuid())
-  itemType   String   // RECORDING|PSA
-  itemId     String   // recordingId or psaId
+  itemType   String // RECORDING|PSA
+  itemId     String // recordingId or psaId
   playedAt   DateTime @default(now())
-  duration   Float?   // actual play duration
+  duration   Float? // actual play duration
   wasSkipped Boolean  @default(false)
 
   exhibitionId String
@@ -161,11 +161,11 @@ model ExhibitionPlaybackLog {
 }
 
 model PdfDownload {
-  id         String   @id @default(cuid())
-  userId     String
-  nameListId String
+  id           String   @id @default(cuid())
+  userId       String
+  nameListId   String
   downloadedAt DateTime @default(now())
-  
+
   user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   //nameList NameList @relation(fields: [nameListId], references: [id], onDelete: Cascade)
   
