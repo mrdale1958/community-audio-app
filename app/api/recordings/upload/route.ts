@@ -6,6 +6,7 @@ import { prisma } from '@/lib/prisma'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { pageSplitter, type OriginalPage } from '@/lib/pageSplitter'
+import { appendFile } from 'fs/promises'
 
 export async function POST(request: NextRequest) {
   try {
@@ -109,6 +110,8 @@ console.log('audioFile.size:', audioFile.size)
     }, { status: 201 })
 
   } catch (error) {
+    await appendFile('/tmp/api-debug.log', `[${new Date().toISOString()}] Debug info: ${JSON.stringify({ error })}\n`)
+    
     console.error('Upload error:', error)
     
     // Handle specific errors
