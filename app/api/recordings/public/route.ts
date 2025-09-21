@@ -22,12 +22,12 @@ export async function GET(request: NextRequest) {
             name: true
           }
         },
-        nameList: {
+        /*nameList: {
           select: {
             id: true,
             title: true
           }
-        }
+        } */
       },
       orderBy: {
         createdAt: 'desc'

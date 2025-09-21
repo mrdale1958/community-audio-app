@@ -22,13 +22,13 @@ export async function GET(
         userId: session.user.id,
       },
       include: {
-        nameList: {
+       /* nameList: {
           select: {
             id: true,
             title: true,
             pageNumber: true,
           },
-        },
+        },*/
         user: {
           select: {
             name: true,
@@ -133,7 +133,7 @@ export async function PATCH(
         ...(status !== undefined && { status }),
         updatedAt: new Date(),
       },
-      include: {
+      /*include: {
         nameList: {
           select: {
             id: true,
@@ -141,7 +141,7 @@ export async function PATCH(
             pageNumber: true,
           },
         },
-      },
+      },*/
     });
 
     return NextResponse.json(updatedRecording);
