@@ -37,7 +37,7 @@ export const RecordingDetailsDialog = ({
               <Chip
                 icon={getStatusIcon(recording.status)}
                 label={recording.status}
-                color={getStatusColor(recording.status) as any}
+                color={getStatusColor(recording.status) }
                 sx={{ mb: 2 }}
               />
               
@@ -54,8 +54,7 @@ export const RecordingDetailsDialog = ({
               
               <Typography variant="subtitle2" gutterBottom>Name List</Typography>
               <Typography gutterBottom>
-                {recording.nameList?.title || 'No name list assigned'}
-                {recording.nameList?.pageNumber && ` (Page ${recording.nameList.pageNumber})`}
+                {recording.nameListId || 'No name list assigned'}
               </Typography>
               
               <Typography variant="subtitle2" gutterBottom>Created</Typography>

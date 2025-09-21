@@ -210,7 +210,7 @@ export const UserManagementTab = () => {
                 <TableCell>
                   <Chip
                     label={user.role}
-                    color={getRoleColor(user.role) as any}
+                    color={getRoleColor(user.role)}
                     size="small"
                   />
                 </TableCell>

@@ -190,7 +190,7 @@ export default function FileMakerImport() {
             {dryRun && (
               <Box sx={{ mt: 2 }}>
                 <Typography variant="body2" color="info.main">
-                  This was a preview. To actually import the data, uncheck "Dry Run" and run again.
+                  This was a preview. To actually import the data, uncheck &quot;Dry Run&quot;and run again.
                 </Typography>
               </Box>
             )}

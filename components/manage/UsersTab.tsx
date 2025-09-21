@@ -139,7 +139,7 @@ export function UsersTab({ users, onUpdateRole, onAddUser, onDeleteUser }: Users
                   <Chip
                     label={user.role}
                     size="small"
-                    color={getRoleColor(user.role) as any}
+                    color={getRoleColor(user.role)}
                   />
                 </TableCell>
                 <TableCell>

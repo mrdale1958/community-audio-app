@@ -33,6 +33,59 @@ export async function calculateFileHash(filePath: string): Promise<string> {
 }
 
 /**
+ * Estimate WAV file duration from header
+ */
+function estimateWavDuration(buffer: Buffer): number | null {
+  try {
+    // WAV header parsing - this is a simplified version
+    const dataChunkOffset = buffer.indexOf('data');
+    if (dataChunkOffset === -1) return null;
+    
+    const dataSize = buffer.readUInt32LE(dataChunkOffset + 4);
+    const sampleRate = buffer.readUInt32LE(24);
+    const bytesPerSecond = buffer.readUInt32LE(28);
+    
+    if (sampleRate > 0 && bytesPerSecond > 0) {
+      return dataSize / bytesPerSecond;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Estimate MP3 duration (rough calculation based on file size)
+ */
+function estimateMp3Duration(filesize: number): number | null {
+  // Very rough estimation: assume average bitrate of 128kbps
+  const averageBitrate = 128 * 1000 / 8; // bytes per second
+  return filesize / averageBitrate;
+}
+
+/**
+ * Estimate MP4 duration (rough calculation based on file size)
+ */
+function estimateMp4Duration(filesize: number): number | null {
+  // MP4 AAC typically uses 128-320 kbps, estimate based on file size
+  const estimatedBitrate = 256; // kbps average for MP4 AAC
+  const bytesPerSecond = (estimatedBitrate * 1000) / 8;
+  const estimatedDuration = Math.round(filesize / bytesPerSecond);
+  return estimatedDuration > 0 ? estimatedDuration : null;
+}
+
+/**
+ * Estimate OGG duration (rough calculation based on file size)
+ */
+function estimateOggDuration(filesize: number): number | null {
+  // OGG Vorbis typically uses 128-256 kbps, estimate based on file size
+  const estimatedBitrate = 192; // kbps average
+  const bytesPerSecond = (estimatedBitrate * 1000) / 8;
+  const estimatedDuration = Math.round(filesize / bytesPerSecond);
+  return estimatedDuration > 0 ? estimatedDuration : null;
+}
+
+/**
  * Analyze audio file for duration and corruption
  * Note: This is a basic implementation. In production, you might want to use
  * a more sophisticated audio analysis library like node-ffmpeg or similar.
@@ -77,14 +130,6 @@ export async function analyzeAudioFile(filePath: string): Promise<AudioAnalysis>
     const header = fileBuffer.slice(0, 12);
     
     // Basic audio format detection
-function estimateOggDuration(filesize: number): number | null {
-  // OGG Vorbis typically uses 128-256 kbps, estimate based on file size
-  const estimatedBitrate = 192; // kbps average
-  const bytesPerSecond = (estimatedBitrate * 1000) / 8;
-  const estimatedDuration = Math.round(filesize / bytesPerSecond);
-  return estimatedDuration > 0 ? estimatedDuration : null;
-}
-
     let isValidAudio = false;
     let estimatedDuration: number | null = null;
 
@@ -122,46 +167,4 @@ function estimateOggDuration(filesize: number): number | null {
       error: `Analysis failed: ${error instanceof Error ? error.message : 'Unknown error'}`
     };
   }
-}
-
-/**
- * Estimate WAV file duration from header
- */
-function estimateWavDuration(buffer: Buffer): number | null {
-  try {
-    // WAV header parsing - this is a simplified version
-    const dataChunkOffset = buffer.indexOf('data');
-    if (dataChunkOffset === -1) return null;
-    
-    const dataSize = buffer.readUInt32LE(dataChunkOffset + 4);
-    const sampleRate = buffer.readUInt32LE(24);
-    const bytesPerSecond = buffer.readUInt32LE(28);
-    
-    if (sampleRate > 0 && bytesPerSecond > 0) {
-      return dataSize / bytesPerSecond;
-    }
-    return null;
-  } catch {
-    return null;
-  }
-}
-
-/**
- * Estimate MP3 duration (rough calculation based on file size)
- */
-function estimateMp3Duration(filesize: number): number | null {
-  // Very rough estimation: assume average bitrate of 128kbps
-  const averageBitrate = 128 * 1000 / 8; // bytes per second
-  return filesize / averageBitrate;
-}
-
-/**
- * Estimate MP4 duration (rough calculation based on file size)
- */
-function estimateMp4Duration(filesize: number): number | null {
-  // MP4 AAC typically uses 128-320 kbps, estimate based on file size
-  const estimatedBitrate = 256; // kbps average for MP4 AAC
-  const bytesPerSecond = (estimatedBitrate * 1000) / 8;
-  const estimatedDuration = Math.round(filesize / bytesPerSecond);
-  return estimatedDuration > 0 ? estimatedDuration : null;
 }

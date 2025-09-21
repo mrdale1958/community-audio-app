@@ -33,7 +33,7 @@ export function DeleteUserDialog({ open, onClose, user, onDelete }: DeleteUserDi
       <DialogTitle>Delete User</DialogTitle>
       <DialogContent>
         <Typography gutterBottom>
-          Are you sure you want to delete user "{user.name}"?
+          Are you sure you want to delete user &quot;{user.name}&quot;?
         </Typography>
         <Alert severity="warning" sx={{ mt: 2 }}>
           <Typography variant="body2">

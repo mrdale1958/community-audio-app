@@ -148,7 +148,7 @@ export default function DashboardPage() {
                 <Typography variant="h6">Upload Recordings</Typography>
               </Box>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 3, flexGrow: 1 }}>
-                Upload recordings you've made offline using downloaded name lists.
+                Upload recordings you;lsqout;ve made offline using downloaded name lists.
               </Typography>
               <Button
                 component={Link}

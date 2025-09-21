@@ -360,3 +360,33 @@ Consider adding application monitoring:
 - [ ] Environment files have proper permissions (600)
 - [ ] File upload directory secured with proper permissions
 - [ ] Apache security headers configured
+
+Node.js Version Consistency
+To ensure consistent linting, building, and runtime behavior across all environments (local development, CI, and production), all contributors and servers must use the same Node.js version.
+
+Why is this necessary?
+Different Node.js versions can cause discrepancies in TypeScript, ESLint, and build results.
+Some dependencies and language features may only work in newer Node versions.
+Avoids "works on my machine" problems and unexpected production errors.
+Required Node.js Version
+The required Node.js version for this project is: 22.x
+
+Check your current version with:
+
+How to Set the Correct Node Version
+We recommend using nvm (Node Version Manager):
+
+1. Install nvm (if not already installed)
+Then activate nvm in your shell:
+
+2. Install and use Node.js 22
+3. Reinstall dependencies
+After switching Node versions, always run:
+
+This ensures all dependencies are installed exactly as specified in package-lock.json.
+
+Troubleshooting
+If you see lint/build errors on the server that do not appear locally, check your Node.js version and align it with the project requirement.
+Always use local project binaries (npx tsc, npx eslint) rather than global installs.
+Summary:
+Keep Node.js versions in sync across all environments to avoid unexpected errors and ensure consistent development experience.

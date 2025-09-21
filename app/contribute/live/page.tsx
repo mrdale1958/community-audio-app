@@ -244,7 +244,7 @@ export default function LiveRecordingPage() {
       
       mediaRecorder.onstop = async () => {
         const recordedMimeType = mediaRecorderRef.current?.mimeType || 'audio/webm'
-        let blob = new Blob(chunksRef.current, { type: recordedMimeType })
+        const       blob = new Blob(chunksRef.current, { type: recordedMimeType })
         
         // Check if the recorded format can be played back
         const audio = document.createElement('audio')

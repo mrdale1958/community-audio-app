@@ -51,7 +51,7 @@ export const RecordingCard = ({
             {recording.title}
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            {recording.nameList?.title || 'No name list'}
+            {recording.nameListId || 'No name list'}
           </Typography>
         </Box>
       </Box>
@@ -60,7 +60,7 @@ export const RecordingCard = ({
         <Chip
           icon={getStatusIcon(recording.status)}
           label={recording.status}
-          color={getStatusColor(recording.status) as any}
+          color={getStatusColor(recording.status)}
           size="small"
           sx={{ mr: 1 }}
         />
@@ -85,7 +85,7 @@ export const RecordingCard = ({
       
       {recording.notes && (
         <Typography variant="body2" sx={{ mt: 1, fontStyle: 'italic' }}>
-          "{recording.notes}"
+          &quot;{recording.notes}&quot;
         </Typography>
       )}
     </CardContent>

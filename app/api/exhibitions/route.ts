@@ -4,6 +4,8 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { UserRole } from '@/types/prisma';
 import { CONFIG } from '@/lib/config';
+import { Exhibition } from '@/types/exhibition';
+import { Prisma } from '@prisma/client';
 
 export async function GET(request: NextRequest) {
   try {
@@ -20,7 +22,7 @@ export async function GET(request: NextRequest) {
     const upcoming = url.searchParams.get('upcoming') === 'true';
 
     // Build where clause
-    let whereClause: any = {};
+    let whereClause: Prisma.ExhibitionWhereInput = {};
 
     // GALLERIST can only see their own exhibitions
     if (session.user.role === 'GALLERIST') {
@@ -71,6 +73,8 @@ export async function GET(request: NextRequest) {
     // Parse JSON fields for response
     const exhibitionsWithParsedData = exhibitions.map(exhibition => ({
       ...exhibition,
+      startDate: exhibition.startDate instanceof Date ? exhibition.startDate.toISOString() : exhibition.startDate,
+      endDate: exhibition.endDate instanceof Date ? exhibition.endDate.toISOString() : exhibition.endDate,
       galleryHours: JSON.parse(exhibition.galleryHours),
       settings: exhibition.settings ? JSON.parse(exhibition.settings) : null
     }));

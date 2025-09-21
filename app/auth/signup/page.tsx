@@ -110,11 +110,15 @@ export default function SignUpPage() {
         }
       }, 2000)
 
-    } catch (err: any) {
-      setError(err.message || 'An error occurred during registration')
-      console.error('Registration error:', err)
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error
+          ? err.message
+          : 'An error occurred during registration';
+      setError(errorMessage);
+      console.error('Registration error:', err);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 
@@ -130,7 +134,7 @@ export default function SignUpPage() {
               Welcome to the Community Audio Recording Project
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              You'll be automatically signed in and redirected in a moment...
+              You&lsquot;ll be automatically signed in and redirected in a moment...
             </Typography>
           </Paper>
         </Box>

@@ -151,7 +151,7 @@ export default function UpgradePage() {
         <CardContent>
           <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
             <CheckCircle sx={{ mr: 1, color: 'success.main' }} />
-            What you'll gain as a Contributor:
+            What you&lsquot;ll gain as a Contributor:
           </Typography>
           
           <Grid container spacing={3} sx={{ mt: 2 }}>
@@ -213,7 +213,7 @@ export default function UpgradePage() {
             Are you sure you want to upgrade your account to Contributor status?
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            This will give you access to recording features and your personal dashboard. You can't undo this change, but it unlocks the full experience of our community project.
+            This will give you access to recording features and your personal dashboard. You can&lsquot;t undo this change, but it unlocks the full experience of our community project.
           </Typography>
         </DialogContent>
         <DialogActions>

@@ -626,8 +626,11 @@ export default function PlaybackPage() {
                           onClick={(e) => {
                             e.stopPropagation()
                             if (isCurrentTrack) {
-                              isPlaying ? handlePause() : handlePlay()
-                            } else {
+if (isPlaying) {
+        handlePause();
+      } else {
+        handlePlay();
+      }                            } else {
                               playSpecificTrack(actualIndex)
                             }
                           }}

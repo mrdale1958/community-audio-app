@@ -79,6 +79,8 @@ const GalleryAudioControl = () => {
       }, 100);
       return () => clearInterval(interval);
     }
+    // Explicitly return undefined if not playing
+    return undefined;
   }, [isPlaying]);
 
   const startSoundCheck = async () => {

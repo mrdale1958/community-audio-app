@@ -4,6 +4,20 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { createReadStream, existsSync } from 'fs';
 import { join } from 'path';
+import { Readable } from 'stream';
+
+function nodeStreamToWeb(stream: Readable): ReadableStream {
+  return new ReadableStream({
+    start(controller) {
+      stream.on('data', (chunk) => controller.enqueue(chunk));
+      stream.on('end', () => controller.close());
+      stream.on('error', (err) => controller.error(err));
+    },
+    cancel() {
+      stream.destroy();
+    }
+  });
+}
 
 export async function GET(
   request: NextRequest,
@@ -36,8 +50,9 @@ export async function GET(
     }
 
     const stream = createReadStream(filePath);
+    const webStream = nodeStreamToWeb(stream);
     
-    return new NextResponse(stream as any, {
+    return new NextResponse(webStream, {
       headers: {
         'Content-Type': 'application/octet-stream',
         'Content-Disposition': `attachment; filename="${recording.originalFilename}"`,

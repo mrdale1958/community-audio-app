@@ -118,45 +118,35 @@ export function useManageData() {
   }, [])
 
   const addUser = useCallback(async (userData: NewUserData) => {
-    try {
-      // Basic client-side validation
-      if (!userData.name.trim()) throw new Error('Name is required')
-      if (!userData.email.trim()) throw new Error('Email is required')
-      if (!userData.password || userData.password.length < 6) {
-        throw new Error('Password must be at least 6 characters')
-      }
-      
-      // Email format validation
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-      if (!emailRegex.test(userData.email)) {
-        throw new Error('Please enter a valid email address')
-      }
-      
-      const response = await fetch(apiUrl('/api/admin/users/'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(userData)
-      })
-      
-      if (!response.ok) {
-        const errorData = await response.json()
-        
-        if (errorData.details && Array.isArray(errorData.details)) {
-          throw new Error(errorData.details.join(', '))
-        }
-        
-        throw new Error(errorData.error || 'Failed to create user')
-      }
-      
-      const result = await response.json()
-      setUsers(prev => [result.user, ...prev])
-      
-      loadStats()
-      return result.user
-    } catch (err) {
-      // Don't set the main page error - let the dialog handle it
-      throw err
+    // Basic client-side validation
+    if (!userData.name.trim()) throw new Error('Name is required')
+    if (!userData.email.trim()) throw new Error('Email is required')
+    if (!userData.password || userData.password.length < 6) {
+      throw new Error('Password must be at least 6 characters')
     }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(userData.email)) {
+      throw new Error('Please enter a valid email address')
+    }
+
+    const response = await fetch(apiUrl('/api/admin/users/'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(userData)
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json()
+      if (errorData.details && Array.isArray(errorData.details)) {
+        throw new Error(errorData.details.join(', '))
+      }
+      throw new Error(errorData.error || 'Failed to create user')
+    }
+
+    const result = await response.json()
+    setUsers(prev => [result.user, ...prev])
+    loadStats()
+    return result.user
   }, [loadStats])
 
   const deleteUser = useCallback(async (userId: string) => {

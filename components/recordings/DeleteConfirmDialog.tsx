@@ -25,7 +25,7 @@ export const DeleteConfirmDialog = ({
     <DialogTitle>Delete Recording</DialogTitle>
     <DialogContent>
       <Typography>
-        Are you sure you want to delete "{recording?.title}"? 
+        Are you sure you want to delete &quot;{recording?.title}&quot;? 
         This action cannot be undone.
       </Typography>
     </DialogContent>

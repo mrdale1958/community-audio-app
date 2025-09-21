@@ -139,7 +139,6 @@ export class RecordingValidator {
    */
   private static async getAudioDuration(audioFile: File | Blob): Promise<number> {
     return new Promise((resolve, reject) => {
-      // Simple browser check using feature detection
       if (typeof document === 'undefined') {
         reject(new Error('Audio duration extraction requires browser environment'));
         return;
@@ -147,37 +146,32 @@ export class RecordingValidator {
 
       const audio = document.createElement('audio');
       const url = URL.createObjectURL(audioFile);
-      
-      let timeoutId: NodeJS.Timeout | number;
-      
-      const cleanup = () => {
-        URL.revokeObjectURL(url);
-        if (timeoutId) {
-          clearTimeout(timeoutId);
-        }
-      };
-      
+
       const handleLoadedMetadata = () => {
         cleanup();
         resolve(audio.duration);
       };
-      
+
       const handleError = () => {
         cleanup();
         reject(new Error('Failed to load audio file'));
       };
-      
+
       const handleTimeout = () => {
         cleanup();
         reject(new Error('Timeout loading audio file'));
       };
-      
+
+      const timeoutId = setTimeout(handleTimeout, 10000);
+
+      const cleanup = () => {
+        URL.revokeObjectURL(url);
+        clearTimeout(timeoutId);
+      };
+
       audio.addEventListener('loadedmetadata', handleLoadedMetadata);
       audio.addEventListener('error', handleError);
-      
-      // Set a timeout to prevent hanging
-      timeoutId = setTimeout(handleTimeout, 10000);
-      
+
       audio.src = url;
     });
   }

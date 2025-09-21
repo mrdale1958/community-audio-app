@@ -55,6 +55,11 @@ interface UploadedFile {
   error?: string
 }
 
+interface Recording {
+  nameListId: string;
+  // ...other fields if needed
+}
+
 export default function OfflineContributePage() {
   const { data: session, status } = useSession()
   const router = useRouter()
@@ -100,7 +105,7 @@ export default function OfflineContributePage() {
       }
       
       // Find unrecorded pages
-      const recordedNameListIds = new Set(existingRecordings.map((r: any) => r.nameListId))
+      const recordedNameListIds = new Set(existingRecordings.map((r: Recording) => r.nameListId))
       const unrecordedPages = nameLists.filter((page: NameList) => !recordedNameListIds.has(page.id))
       
       if (unrecordedPages.length === 0) {
@@ -346,7 +351,7 @@ export default function OfflineContributePage() {
           </Typography>
           <Box component="ol" sx={{ pl: 2 }}>
             <Typography component="li" sx={{ mb: 1 }}>
-              We'll show you one unrecorded page at a time
+              We&lsquot;ll show you one unrecorded page at a time
             </Typography>
             <Typography component="li" sx={{ mb: 1 }}>
               Download the PDF for this page and record yourself reading the names
@@ -385,7 +390,7 @@ export default function OfflineContributePage() {
         <>
           {isReturningToDownloadedPage && (
             <Alert severity="info" sx={{ mb: 3 }}>
-              📎 <strong>Welcome back!</strong> We're showing you the page you previously downloaded so you can upload your recording.
+              📎 <strong>Welcome back!</strong> We&lsquot;re showing you the page you previously downloaded so you can upload your recording.
             </Alert>
           )}
 
@@ -552,7 +557,7 @@ export default function OfflineContributePage() {
                   <Chip
                     label={fileData.status}
                     size="small"
-                    color={getStatusColor(fileData.status) as any}
+                    color={getStatusColor(fileData.status)}
                   />
                   {fileData.status === 'pending' && (
                     <IconButton

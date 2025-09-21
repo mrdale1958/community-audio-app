@@ -21,6 +21,7 @@ type NameListData = {
 import { prisma } from './prisma';
 import { CONFIG, PageHelpers, ValidationHelpers } from './config';
 import type { NameList, Recording, User } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 
 // Extended types to handle the new fields
 type NameListWithRecordings = NameList & {
@@ -290,7 +291,7 @@ pages.forEach((page, idx) => {
       }
 
       summaries.push({
-        pageNumber: namelist.pageNumber,
+        pageNumber: namelist.pageNumber ?? 0,
         title: namelist.title,
         namesCount,
         recordingCount: recordings.length,
@@ -447,7 +448,7 @@ pages.forEach((page, idx) => {
       description?: string;
     }
   ): Promise<NameList> {
-    const updateData: any = {
+    const updateData: Prisma.NameListUpdateInput = {
       updatedAt: new Date(),
     };
 

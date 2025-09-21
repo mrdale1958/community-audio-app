@@ -141,7 +141,7 @@ function SignInForm() {
 
             <Box textAlign="center">
               <Typography variant="body2">
-                Don't have an account?{' '}
+                Don&lsquot;t have an account?{' '}
                 <MuiLink component={Link} href="/auth/signup" underline="hover">
                   Sign up here
                 </MuiLink>

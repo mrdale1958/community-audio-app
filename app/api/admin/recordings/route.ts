@@ -33,12 +33,7 @@ export async function GET(request: NextRequest) {
             role: true
           }
         },
-        nameList: {
-          select: {
-            id: true,
-            title: true
-          }
-        }
+        nameListId: true // Use synthetic page ID directly
       },
       orderBy: {
         createdAt: 'desc'

@@ -181,7 +181,7 @@ export function RecordingsTab({
                   <Chip
                     label={recording.status}
                     size="small"
-                    color={getStatusColor(recording.status) as any}
+                    color={getStatusColor(recording.status)}
                   />
                 </TableCell>
                 <TableCell>

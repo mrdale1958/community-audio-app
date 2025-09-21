@@ -498,7 +498,7 @@ export default function DashboardRecordingsPage() {
                       <Chip
                         label={recording.status}
                         size="small"
-                        color={getStatusColor(recording.status) as any}
+                        color={getStatusColor(recording.status)}
                       />
                     </TableCell>
                     <TableCell>
@@ -585,7 +585,7 @@ export default function DashboardRecordingsPage() {
         <DialogTitle>Delete Recording</DialogTitle>
         <DialogContent>
           <Typography>
-            Are you sure you want to delete "{recordingToDelete?.originalFilename}"?
+            Are you sure you want to delete &quot;{recordingToDelete?.originalFilename}&quot;?
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
             This action cannot be undone.
@@ -624,7 +624,7 @@ export default function DashboardRecordingsPage() {
                   <Chip
                     label={selectedRecording.status}
                     size="small"
-                    color={getStatusColor(selectedRecording.status) as any}
+                    color={getStatusColor(selectedRecording.status)}
                   />
                 </Grid>
                 <Grid item xs={6}>
