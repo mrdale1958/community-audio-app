@@ -14,10 +14,14 @@ export interface Recording {
     email: string
     role: string
   }
-  nameList: {
+    nameListId: string // Synthetic page ID
+  // Optionally, add displayTitle if you need it for UI:
+  // displayTitle?: string
+
+ /* nameList: {
     id: string
     title: string
-  }
+  } */
 }
 
 export interface User {

@@ -60,36 +60,8 @@ export async function GET(request: NextRequest) {
         downloadedAt: latestDownload.downloadedAt
       })
     } else {
-      // Handle actual database ID
-      const nameList = await prisma.nameList.findUnique({
-        where: { id: latestDownload.nameListId }
-      })
-
-      if (!nameList) {
-        return NextResponse.json({ downloadedPage: null })
-      }
-
-      // Convert to the same format as split pages
-      const parsedNames = JSON.parse(nameList.names)
-      const names = Array.isArray(parsedNames) 
-        ? parsedNames.map(name => typeof name === 'string' ? name : name.name)
-        : []
-
-      const page = {
-        id: nameList.id,
-        originalId: nameList.id,
-        title: nameList.title,
-        names,
-        pageNumber: nameList.pageNumber || 0,
-        subPage: 'A',
-        displayTitle: nameList.title,
-        totalNamesInOriginal: names.length
-      }
-
-      return NextResponse.json({ 
-        downloadedPage: page,
-        downloadedAt: latestDownload.downloadedAt
-      })
+      // If not a synthetic ID, just return null or handle as error
+      return NextResponse.json({ downloadedPage: null })
     }
 
   } catch (error) {
