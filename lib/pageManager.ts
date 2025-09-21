@@ -202,22 +202,25 @@ pages.forEach((page, idx) => {
    * Get page data with recordings
    */
   static async getPageData(pageNumber: number, seriesId?: string): Promise<PageData | null> {
-    const namelist = await prisma.nameList.findFirst({
+        const namelist = await prisma.nameList.findFirst({
       where: {
         pageNumber,
         ...(seriesId && { seriesId })
-      },
-      include: {
-        recordings: {
-          include: {
-            user: {
-              select: { name: true, email: true }
-            }
-          },
-          orderBy: { createdAt: 'desc' }
-        }
       }
-    }) as NameListData | null;
+    });
+    
+    if (!namelist) return null;
+    
+    // Fetch recordings for this synthetic page
+    const recordings = await prisma.recording.findMany({
+      where: { nameListId: namelist.id }, // or use synthetic page ID if that's your convention
+      include: {
+        user: {
+          select: { name: true, email: true }
+        }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
 
     if (!namelist) return null;
 
@@ -250,8 +253,8 @@ pages.forEach((page, idx) => {
       namesCount: namelist.namesCount || parsedNames.length, // Fallback to parsed length
       totalPages: namelist.totalPages || undefined,
       seriesId: namelist.seriesId || undefined,
-      hasRecording: namelist.recordings.length > 0,
-      recordings: namelist.recordings,
+      hasRecording: recordings.length > 0,
+      recordings,
       createdAt: namelist.createdAt,
     };
   }
@@ -262,18 +265,17 @@ pages.forEach((page, idx) => {
   static async getPagesSummary(seriesId?: string): Promise<PageSummary[]> {
     const namelists = await prisma.nameList.findMany({
       where: seriesId ? { seriesId } : {},
-      include: {
-        recordings: {
-          select: {
-            status: true,
-            createdAt: true,
-          }
-        }
-      },
       orderBy: { pageNumber: 'asc' }
-    }) as NameListWithSummaryRecordings[];
+    });
 
-    return namelists.map(namelist => {
+    // Fetch recordings for each page
+    const summaries: PageSummary[] = [];
+    for (const namelist of namelists) {
+      const recordings = await prisma.recording.findMany({
+        where: { nameListId: namelist.id },
+        select: { status: true, createdAt: true }
+      });
+
       // Parse names to get count if namesCount is missing
       let namesCount = namelist.namesCount;
       if (!namesCount) {
@@ -286,17 +288,18 @@ pages.forEach((page, idx) => {
         }
       }
 
-      return {
+      summaries.push({
         pageNumber: namelist.pageNumber,
         title: namelist.title,
         namesCount,
-        recordingCount: namelist.recordings.length,
-        hasApprovedRecording: namelist.recordings.some(r => r.status === 'APPROVED'),
-        lastRecordingDate: namelist.recordings.length > 0 
-          ? namelist.recordings.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())[0].createdAt
+        recordingCount: recordings.length,
+        hasApprovedRecording: recordings.some(r => r.status === 'APPROVED'),
+        lastRecordingDate: recordings.length > 0
+          ? recordings.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())[0].createdAt
           : undefined,
-      };
-    });
+      });
+    }
+    return summaries;
   }
 
   /**
@@ -359,27 +362,27 @@ pages.forEach((page, idx) => {
         OR: [
           ...(isPageNumberSearch ? [{ pageNumber }] : []),
           { title: { contains: query } },
-          { names: { contains: query } }, // SQLite full-text search on JSON
+          { names: { contains: query } },
         ]
       },
-      include: {
-        recordings: {
-          include: {
-            user: {
-              select: { name: true, email: true }
-            }
-          },
-          orderBy: { createdAt: 'desc' }
-        }
-      },
       orderBy: { pageNumber: 'asc' }
-    }) as NameListData[];
+    });
 
-    return namelists.map(namelist => {
-      // Parse names safely and handle conversion
+    const results: PageData[] = [];
+    for (const namelist of namelists) {
+      const recordings = await prisma.recording.findMany({
+        where: { nameListId: namelist.id },
+        include: {
+          user: {
+            select: { name: true, email: true }
+          }
+        },
+        orderBy: { createdAt: 'desc' }
+      });
+
       const parsedNames = this.parseNamesWithMetadata(namelist.names);
 
-      return {
+      results.push({
         id: namelist.id,
         pageNumber: namelist.pageNumber,
         title: namelist.title,
@@ -387,11 +390,12 @@ pages.forEach((page, idx) => {
         namesCount: namelist.namesCount || parsedNames.length,
         totalPages: namelist.totalPages || undefined,
         seriesId: namelist.seriesId || undefined,
-        hasRecording: namelist.recordings.length > 0,
-        recordings: namelist.recordings,
+        hasRecording: recordings.length > 0,
+        recordings,
         createdAt: namelist.createdAt,
-      };
-    });
+      });
+    }
+    return results;
   }
 
   /**
@@ -399,22 +403,21 @@ pages.forEach((page, idx) => {
    */
   static async getPageById(pageId: string): Promise<(PageData & { createdBy: string }) | null> {
     const namelist = await prisma.nameList.findUnique({
-      where: { id: pageId },
-      include: {
-        recordings: {
-          include: {
-            user: {
-              select: { name: true, email: true }
-            }
-          },
-          orderBy: { createdAt: 'desc' }
-        }
-      }
-    }) as NameListData | null;
+      where: { id: pageId }
+    });
 
     if (!namelist) return null;
 
-    // Parse names safely and handle conversion
+    const recordings = await prisma.recording.findMany({
+      where: { nameListId: namelist.id },
+      include: {
+        user: {
+          select: { name: true, email: true }
+        }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+
     const parsedNames = this.parseNamesWithMetadata(namelist.names);
 
     return {
@@ -425,10 +428,10 @@ pages.forEach((page, idx) => {
       namesCount: namelist.namesCount || parsedNames.length,
       totalPages: namelist.totalPages || undefined,
       seriesId: namelist.seriesId || undefined,
-      hasRecording: namelist.recordings.length > 0,
-      recordings: namelist.recordings,
+      hasRecording: recordings.length > 0,
+      recordings,
       createdAt: namelist.createdAt,
-      createdBy: namelist.createdBy,
+      createdBy: namelist.createdBy ?? '',
     };
   }
 
@@ -489,15 +492,18 @@ pages.forEach((page, idx) => {
    */
   static async deletePage(pageId: string): Promise<void> {
     const page = await prisma.nameList.findUnique({
-      where: { id: pageId },
-      include: { recordings: true }
+      where: { id: pageId }
     });
 
     if (!page) {
       throw new Error('Page not found');
     }
 
-    if (page.recordings.length > 0) {
+    const recordings = await prisma.recording.findMany({
+      where: { nameListId: page.id }
+    });
+
+    if (recordings.length > 0) {
       throw new Error('Cannot delete page with existing recordings');
     }
 
