@@ -247,7 +247,7 @@ pages.forEach((page, idx) => {
 
     return {
       id: namelist.id,
-      pageNumber: namelist.pageNumber,
+      pageNumber: namelist.pageNumber ?? 0,
       title: namelist.title,
       names: parsedNames,
       namesCount: namelist.namesCount || parsedNames.length, // Fallback to parsed length
@@ -256,6 +256,7 @@ pages.forEach((page, idx) => {
       hasRecording: recordings.length > 0,
       recordings,
       createdAt: namelist.createdAt,
+      
     };
   }
 
