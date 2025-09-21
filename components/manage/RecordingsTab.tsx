@@ -85,7 +85,7 @@ export function RecordingsTab({
     const matchesStatus = statusFilter === 'ALL' || recording.status === statusFilter
     const matchesSearch = !searchQuery || 
       recording.originalFilename.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      recording.nameList.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      recording.nameListId.toLowerCase().includes(searchQuery.toLowerCase()) ||
       recording.user.name.toLowerCase().includes(searchQuery.toLowerCase())
     
     return matchesStatus && matchesSearch
@@ -174,7 +174,7 @@ export function RecordingsTab({
                 </TableCell>
                 <TableCell>
                   <Typography variant="body2" noWrap>
-                    {recording.nameList.title}
+                    {recording.nameListId}
                   </Typography>
                 </TableCell>
                 <TableCell>

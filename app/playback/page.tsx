@@ -58,10 +58,7 @@ interface Recording {
     id: string
     name: string
   }
-  nameList: {
-    id: string
-    title: string
-  }
+  nameListId: string // Synthetic page ID directly
 }
 
 export default function PlaybackPage() {
@@ -100,13 +97,10 @@ export default function PlaybackPage() {
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const progressUpdateInterval = useRef<NodeJS.Timeout | null>(null)
 
-  // Get unique name lists for filter
-  const nameListOptions = recordings.reduce((acc, recording) => {
-    if (!acc.find(nl => nl.id === recording.nameList.id)) {
-      acc.push(recording.nameList)
-    }
-    return acc
-  }, [] as Array<{id: string, title: string}>)
+  // Get unique nameListIds for filter
+  const nameListOptions = Array.from(
+    new Set(recordings.map(r => r.nameListId))
+  ).map(id => ({ id, title: id }))
 
   // Load approved recordings
   const loadRecordings = async () => {
@@ -151,7 +145,7 @@ export default function PlaybackPage() {
 
     // Name list filter
     if (nameListFilter !== 'ALL') {
-      filtered = filtered.filter(r => r.nameList.id === nameListFilter)
+      filtered = filtered.filter(r => r.nameListId === nameListFilter)
     }
 
     // Method filter
@@ -164,7 +158,7 @@ export default function PlaybackPage() {
       const query = searchQuery.toLowerCase()
       filtered = filtered.filter(r => 
         r.originalFilename.toLowerCase().includes(query) ||
-        r.nameList.title.toLowerCase().includes(query) ||
+        r.nameListId.toLowerCase().includes(query) ||
         r.user.name.toLowerCase().includes(query)
       )
     }
@@ -178,7 +172,7 @@ export default function PlaybackPage() {
         filtered.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
         break
       case 'nameList':
-        filtered.sort((a, b) => a.nameList.title.localeCompare(b.nameList.title))
+        filtered.sort((a, b) => a.nameListId.localeCompare(b.nameListId))
         break
       case 'contributor':
         filtered.sort((a, b) => a.user.name.localeCompare(b.user.name))
@@ -412,7 +406,7 @@ export default function PlaybackPage() {
                   </Avatar>
                   <Box sx={{ flex: 1, minWidth: 0 }}>
                     <Typography variant="subtitle1" noWrap>
-                      {currentRecording.nameList.title}
+                      {currentRecording.nameListId}
                     </Typography>
                     <Typography variant="body2" color="text.secondary" noWrap>
                       by {currentRecording.user.name}
@@ -619,8 +613,8 @@ export default function PlaybackPage() {
                     <CardContent>
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
                         <Box sx={{ flex: 1, minWidth: 0 }}>
-                          <Typography variant="h6" noWrap title={recording.nameList.title}>
-                            {recording.nameList.title}
+                          <Typography variant="h6" noWrap title={recording.nameListId}>
+                            {recording.nameListId}
                           </Typography>
                           <Typography variant="body2" color="text.secondary" noWrap>
                             by {recording.user.name}

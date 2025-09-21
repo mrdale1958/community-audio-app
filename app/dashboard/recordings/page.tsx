@@ -57,10 +57,7 @@ interface Recording {
   status: 'PENDING' | 'APPROVED' | 'REJECTED'
   method: 'LIVE' | 'UPLOAD'
   createdAt: string
-  nameList: {
-    id: string
-    title: string
-  }
+        nameListId: string // Use synthetic page ID directly
 }
 
 export default function DashboardRecordingsPage() {
@@ -148,7 +145,7 @@ export default function DashboardRecordingsPage() {
       const query = searchQuery.toLowerCase()
       filtered = filtered.filter(r => 
         r.originalFilename.toLowerCase().includes(query) ||
-        r.nameList.title.toLowerCase().includes(query)
+        r.nameListId.toLowerCase().includes(query)
       )
     }
 
@@ -494,7 +491,7 @@ export default function DashboardRecordingsPage() {
                     </TableCell>
                     <TableCell>
                       <Typography variant="body2">
-                        {recording.nameList.title}
+                        {recording.nameListId}
                       </Typography>
                     </TableCell>
                     <TableCell>
@@ -617,7 +614,7 @@ export default function DashboardRecordingsPage() {
                     Name List:
                   </Typography>
                   <Typography variant="body2">
-                    {selectedRecording.nameList.title}
+                    {selectedRecording.nameListId}
                   </Typography>
                 </Grid>
                 <Grid item xs={6}>

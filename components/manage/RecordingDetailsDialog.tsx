@@ -92,7 +92,7 @@ export function RecordingDetailsDialog({
                 Name List
               </Typography>
               <Typography variant="body1" gutterBottom>
-                {recording.nameList.title}
+                 {recording.nameListId}
               </Typography>
             </Grid>
             

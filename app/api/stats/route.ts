@@ -27,13 +27,10 @@ export async function GET(request: NextRequest) {
       
       
       // Pages that have at least one recording
-      prisma.nameList.count({
-        where: {
-          recordings: {
-            some: {}
-          }
-        }
-      }),
+     prisma.recording.groupBy({
+    by: ['nameListId'],
+    _count: { id: true }
+  }).then(groups => groups.length),
       
       // Recording counts by status
       prisma.recording.groupBy({
