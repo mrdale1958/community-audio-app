@@ -7,36 +7,29 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { pageSplitter, type OriginalPage } from '@/lib/pageSplitter'
 import { appendFile } from 'fs/promises'
+import logger from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
   try {
-    await appendFile(
-      '/tmp/api-debug.log',
-      `[${new Date().toISOString()}] Request received: ${JSON.stringify(request)}\n`
-    );
+    logger.info('Request received', { request: { method: request.method, url: request.url } });
 
     const session = await getServerSession(authOptions);
 
     if (!session?.user?.id) {
+      logger.warn('Unauthorized access attempt');
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       );
     }
-    await appendFile(
-      '/tmp/api-debug.log',
-      `[${new Date().toISOString()}] Session user ID: ${session.user.id}\n`
-    );
+    logger.info('Session user ID', { userId: session.user.id });
 
     const formData = await request.formData();
     const audioFile = formData.get('audio') as File;
     const nameListId = formData.get('nameListId') as string;
     const method = formData.get('method') as string;
     const duration = formData.get('duration') as string;
-    await appendFile(
-      '/tmp/api-debug.log',
-      `[${new Date().toISOString()}] Form Data - nameListId: ${nameListId}, method: ${method}, duration: ${duration}\n`
-    );
+    logger.info('Form Data', { nameListId, method, duration });
 
     // Validate required fields
     if (!audioFile || !nameListId || !method) {
@@ -72,33 +65,20 @@ export async function POST(request: NextRequest) {
     const timestamp = Date.now();
     const fileExtension = audioFile.name.split('.').pop() || 'webm';
     const filename = `recording-${timestamp}-${session.user.id}.${fileExtension}`;
-    await appendFile(
-      '/tmp/api-debug.log',
-      `[${new Date().toISOString()}] filename: ${filename}\n`
-    );
+    logger.info('filename', { filename });
 
     // Ensure uploads directory exists
     const uploadsDir = process.env.UPLOAD_PATH || join(process.cwd(), 'uploads');
     if (!existsSync(uploadsDir)) {
       await mkdir(uploadsDir, { recursive: true });
     }
-    await appendFile(
-      '/tmp/api-debug.log',
-      `[${new Date().toISOString()}] audioFile: ${JSON.stringify(audioFile)}\n`
-    );
-    await appendFile(
-      '/tmp/api-debug.log',
-      `[${new Date().toISOString()}] audioFile.size: ${audioFile.size}\n`
-    );
+    logger.info('audioFile.size', { size: audioFile.size });
 
     // Save file to disk
     const filePath = join(uploadsDir, filename);
     const bytes = await audioFile.arrayBuffer();
     const buffer = Buffer.from(bytes);
-    await appendFile(
-      '/tmp/api-debug.log',
-      `[${new Date().toISOString()}] buffer.length: ${buffer.length}\n`
-    );
+    logger.info('buffer.length', { length: buffer.length });
     await writeFile(filePath, buffer);
 
     // Save recording metadata to database
@@ -125,19 +105,28 @@ export async function POST(request: NextRequest) {
       }
     });
 
+    // Find the next synthetic page for the user
+    // (You may want to filter out pages the user has already recorded)
+    const recordedNameListIds = await prisma.recording.findMany({
+      where: { userId: session.user.id },
+      select: { nameListId: true }
+    });
+    const recordedIdsSet = new Set(recordedNameListIds.map(r => r.nameListId));
+
+    // Find the first synthetic page not yet recorded by this user
+    const nextPage = originalPages.find(page => !recordedIdsSet.has(page.id));
+
     return NextResponse.json({
       success: true,
       recording: {
         ...recording,
         syntheticPage: splitPage
-      }
+      },
+      nextPage: nextPage || null // Send the next page (or null if none left)
     }, { status: 201 });
 
   } catch (error) {
-    await appendFile('/tmp/api-debug.log', `[${new Date().toISOString()}] Debug info: ${JSON.stringify({ error })}\n`);
-    
-    // You can also log errors here if needed
-    // await appendFile('/tmp/api-debug.log', `[${new Date().toISOString()}] Upload error: ${error}\n`);
+    logger.error('Upload error', { error });
     
     // Handle specific errors
     if (error && typeof error === 'object' && 'code' in error) {

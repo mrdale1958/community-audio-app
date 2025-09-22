@@ -15,7 +15,7 @@ import {
 } from '@mui/icons-material'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 
 export default function DashboardPage() {
@@ -35,6 +35,22 @@ export default function DashboardPage() {
   }
 
   const userRole = session?.user?.role
+
+  const [stats, setStats] = useState({
+    totalNames: 0,
+    totalPages: 0,
+    totalRecorded: 0,
+    remainingNames: 0,
+  });
+
+  useEffect(() => {
+    async function fetchStats() {
+      const res = await fetch('/api/stats');
+      const data = await res.json();
+      setStats(data);
+    }
+    fetchStats();
+  }, []);
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
@@ -59,7 +75,7 @@ export default function DashboardPage() {
             Call My Name Project Progress
           </Typography>
           <Typography variant="body1" sx={{ mb: 2 }}>
-            0 of 91,927 names recorded
+            {stats.totalRecorded} of {stats.totalNames} names recorded
           </Typography>
           <Box sx={{ 
             height: 8, 
@@ -71,24 +87,24 @@ export default function DashboardPage() {
               height: '100%', 
               backgroundColor: 'white', 
               borderRadius: 4,
-              width: '0%' 
+              width: `${(stats.totalRecorded / stats.totalNames) * 100}%` 
             }} />
           </Box>
           <Grid container spacing={4}>
             <Grid item xs={6} sm={3}>
-              <Typography variant="h4" fontWeight="bold">91,927</Typography>
+              <Typography variant="h4" fontWeight="bold">{stats.totalNames}</Typography>
               <Typography variant="body2">Total Names</Typography>
             </Grid>
             <Grid item xs={6} sm={3}>
-              <Typography variant="h4" fontWeight="bold">0</Typography>
+              <Typography variant="h4" fontWeight="bold">{stats.totalRecorded}</Typography>
               <Typography variant="body2">Recorded</Typography>
             </Grid>
             <Grid item xs={6} sm={3}>
-              <Typography variant="h4" fontWeight="bold">2,095</Typography>
+              <Typography variant="h4" fontWeight="bold">{stats.totalPages}</Typography>
               <Typography variant="body2">Total Pages</Typography>
             </Grid>
             <Grid item xs={6} sm={3}>
-              <Typography variant="h4" fontWeight="bold">91,927</Typography>
+              <Typography variant="h4" fontWeight="bold">{stats.remainingNames}</Typography>
               <Typography variant="body2">Remaining</Typography>
             </Grid>
           </Grid>
@@ -117,7 +133,7 @@ export default function DashboardPage() {
                 Contribute to the Call My Name Project by recording names live through your browser.
               </Typography>
               <Typography variant="caption" color="primary" sx={{ mb: 2 }}>
-                91,927 names remaining
+                {stats.remainingNames} names remaining
               </Typography>
               <Button
                 component={Link}
