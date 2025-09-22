@@ -386,7 +386,7 @@ pages.forEach((page, idx) => {
 
       results.push({
         id: namelist.id,
-        pageNumber: namelist.pageNumber,
+        pageNumber: namelist.pageNumber ?? 0,
         title: namelist.title,
         names: parsedNames,
         namesCount: namelist.namesCount || parsedNames.length,
@@ -424,7 +424,7 @@ pages.forEach((page, idx) => {
 
     return {
       id: namelist.id,
-      pageNumber: namelist.pageNumber,
+      pageNumber: namelist.pageNumber ?? 0,
       title: namelist.title,
       names: parsedNames,
       namesCount: namelist.namesCount || parsedNames.length,
