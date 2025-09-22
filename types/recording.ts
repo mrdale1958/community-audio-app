@@ -10,11 +10,15 @@ export interface Recording {
   recordingMethod: 'LIVE' | 'UPLOAD';
   createdAt: string;
   updatedAt: string;
-  nameList: {
+  nameListId: string // Synthetic page ID
+  // Optionally, add displayTitle if you need it for UI:
+  // displayTitle?: string
+
+  /*nameList: {
     id: string;
     title: string;
     pageNumber: number;
-  } | null;
+  } | null;*/
   notes: string | null;
   exhibitionOrder: number | null;
 }
