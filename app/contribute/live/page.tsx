@@ -251,45 +251,20 @@ export default function LiveRecordingPage() {
         const recordedMimeType = mediaRecorderRef.current?.mimeType || 'audio/webm'
         const       blob = new Blob(chunksRef.current, { type: recordedMimeType })
         
-        // Check if the recorded format can be played back
-        const audio = document.createElement('audio')
-        const testUrl = URL.createObjectURL(blob)
-        
-        try {
-          // Test if browser can play this format
-          await new Promise((resolve, reject) => {
-            audio.addEventListener('canplay', resolve, { once: true })
-            audio.addEventListener('error', reject, { once: true })
-            audio.src = testUrl
-            audio.load()
-            
-            // Timeout after 2 seconds
-            setTimeout(() => reject(new Error('timeout')), 2000)
-          })
-          
-          // Success - use original blob
-          setAudioBlob(blob)
-          setAudioUrl(testUrl)
-          
-        } catch (error) {
-          // Playback failed - try to convert or provide alternative
-          URL.revokeObjectURL(testUrl)
-          console.log('Original format playback failed, using original blob for saving')
-          
-          // Still save the original blob (it's valid for upload)
-          setAudioBlob(blob)
-          
-          // Create a data URL as fallback (for very small files)
-          if (blob.size < 1024 * 1024) { // Less than 1MB
-            const reader = new FileReader()
-            reader.onload = () => {
-              setAudioUrl(reader.result as string)
-            }
-            reader.readAsDataURL(blob)
-          } else {
-            // For larger files, just don't show preview
+        // Create blob URL for playback and saving
+        setAudioBlob(blob)
+
+        if (blob.size > 0) {
+          try {
+            const blobUrl = URL.createObjectURL(blob)
+            setAudioUrl(blobUrl)
+          } catch (error) {
+            console.error('Failed to create blob URL:', error)
             setAudioUrl('')
           }
+        } else {
+          console.warn('Empty blob recorded')
+          setAudioUrl('')
         }
       }
       
@@ -411,13 +386,27 @@ export default function LiveRecordingPage() {
 
   // Reset recording state
   const resetRecording = () => {
+    // Stop any playing audio first
+    if (audioRef.current) {
+      audioRef.current.pause()
+      audioRef.current.currentTime = 0
+    }
+    setIsPlaying(false)
+
+    // Clean up blob URL
+    if (audioUrl) {
+      try {
+        URL.revokeObjectURL(audioUrl)
+      } catch (e) {
+        console.warn('Failed to revoke blob URL:', e)
+      }
+    }
+
+    // Reset state
     setAudioBlob(null)
     setAudioUrl('')
     setRecordingTime(0)
     chunksRef.current = []
-    if (audioUrl) {
-      URL.revokeObjectURL(audioUrl)
-    }
   }
 
   // Format time display
@@ -783,7 +772,9 @@ export default function LiveRecordingPage() {
                     onEnded={() => setIsPlaying(false)}
                     onError={(e) => {
                       console.error('Audio playback error:', e)
-                      setError('Audio preview unavailable in this browser, but recording is valid for saving')
+                      e.preventDefault()
+                      e.stopPropagation()
+                      // Don't set error state here to avoid confusing users - the recording is still valid
                     }}
                     onLoadedData={() => {
                       // Clear any previous errors when audio loads successfully
