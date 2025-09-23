@@ -205,8 +205,13 @@ export default function LiveRecordingPage() {
       
       console.log('Page split stats:', data.stats)
       
-      // Select a random name list
-      const randomList = nameLists[Math.floor(Math.random() * nameLists.length)]
+      // Select a random name list, excluding the current one if possible
+      let availableLists = nameLists
+      if (currentNameList && nameLists.length > 1) {
+        availableLists = nameLists.filter((list: NameList) => list.id !== currentNameList.id)
+      }
+      const randomList = availableLists[Math.floor(Math.random() * availableLists.length)]
+      console.log('Selected new page:', randomList.displayTitle)
       setCurrentNameList(randomList)
       setError('')
     } catch (err) {
@@ -378,14 +383,20 @@ export default function LiveRecordingPage() {
           throw new Error(errorText)
         }
 
-  const result = await response.json()
+  await response.json()
   setShowSaveDialog(false)
 
-      // Reset for next recording
-      resetRecording()
+      // Load a new page for next recording first
+      console.log('Loading new page after save...')
+      try {
+        await loadNameList()
+        console.log('New page loaded successfully')
+      } catch (loadError) {
+        console.error('Failed to load new page:', loadError)
+      }
 
-      // Load a new page for next recording
-      await loadNameList()
+      // Reset for next recording after loading new page
+      resetRecording()
 
       // Show success message
       setShowSuccessMessage(true)

@@ -43,6 +43,7 @@ export default function DashboardPage() {
     totalRecorded: 0,
     remainingNames: 0,
   });
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchStats() {
@@ -51,10 +52,22 @@ export default function DashboardPage() {
         if (!res.ok) {
           throw new Error(`Failed to fetch stats: ${res.status}`);
         }
-        const data = await res.json();
-        setStats(data);
+        const response = await res.json();
+        console.log('Stats API response:', response);
+        if (response.success && response.data) {
+          setStats({
+            totalNames: response.data.totalNames || 0,
+            totalPages: response.data.totalPages || 0,
+            totalRecorded: response.data.approvedRecordings || 0,
+            remainingNames: response.data.remainingNames || 0,
+          });
+          setError(null); // Clear any previous errors
+        } else {
+          setError('Invalid response format from stats API');
+        }
       } catch (error) {
         console.error('Error fetching stats:', error);
+        setError(error instanceof Error ? error.message : 'Failed to fetch stats');
       }
     }
     if (status === 'authenticated') {
@@ -77,6 +90,15 @@ export default function DashboardPage() {
            'Observe project progress and community contributions.'}
         </Typography>
       </Box>
+
+      {/* Error Display */}
+      {error && (
+        <Box sx={{ mb: 4 }}>
+          <Typography color="error" variant="body1">
+            Error loading dashboard data: {error}
+          </Typography>
+        </Box>
+      )}
 
       {/* Progress Section - Keep your existing progress bar here */}
       <Card sx={{ mb: 4, background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white' }}>
