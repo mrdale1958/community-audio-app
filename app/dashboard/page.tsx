@@ -1,12 +1,12 @@
 'use client'
 
 import { Container, Typography, Box, Card, CardContent, Grid, Button } from '@mui/material'
-import { 
-  Mic, 
-  Upload, 
-  PlayArrow, 
-  Visibility, 
-  Settings, 
+import {
+  Mic,
+  Upload,
+  PlayArrow,
+  Visibility,
+  Settings,
   GraphicEq,
   Dashboard as DashboardIcon,
   Analytics,
@@ -17,6 +17,7 @@ import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { apiUrl } from '@/lib/api'
 
 export default function DashboardPage() {
   const { data: session, status } = useSession()
@@ -45,12 +46,21 @@ export default function DashboardPage() {
 
   useEffect(() => {
     async function fetchStats() {
-      const res = await fetch('/api/stats');
-      const data = await res.json();
-      setStats(data);
+      try {
+        const res = await fetch(apiUrl('/api/stats'));
+        if (!res.ok) {
+          throw new Error(`Failed to fetch stats: ${res.status}`);
+        }
+        const data = await res.json();
+        setStats(data);
+      } catch (error) {
+        console.error('Error fetching stats:', error);
+      }
     }
-    fetchStats();
-  }, []);
+    if (status === 'authenticated') {
+      fetchStats();
+    }
+  }, [status]);
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>

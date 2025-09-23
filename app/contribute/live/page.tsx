@@ -380,10 +380,13 @@ export default function LiveRecordingPage() {
 
   const result = await response.json()
   setShowSaveDialog(false)
-      
+
       // Reset for next recording
       resetRecording()
-      
+
+      // Load a new page for next recording
+      await loadNameList()
+
       // Show success message
       setShowSuccessMessage(true)
       

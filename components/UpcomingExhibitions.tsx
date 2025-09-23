@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, MapPin, Clock, Users, Mic, ArrowRight } from 'lucide-react';
 import { apiUrl } from '@/lib/api';
+import { useSession } from 'next-auth/react';
 
 interface Exhibition {
   id: string;
@@ -23,17 +24,25 @@ interface Exhibition {
 }
 
 const UpcomingExhibitions = () => {
+  const { data: session, status } = useSession();
   const [exhibitions, setExhibitions] = useState<Exhibition[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchUpcomingExhibitions();
-  }, []);
+    if (status === 'authenticated') {
+      fetchUpcomingExhibitions();
+    } else if (status === 'unauthenticated') {
+      setLoading(false);
+    }
+  }, [status]);
 
   const fetchUpcomingExhibitions = async () => {
     try {
       // This would call your exhibitions API with a filter for upcoming events
       const response = await fetch(apiUrl('/api/exhibitions/?upcoming=true&limit=3'));
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
       const data = await response.json();
       setExhibitions(data.exhibitions || []);
     } catch (error) {

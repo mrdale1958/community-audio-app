@@ -43,7 +43,9 @@ export default function Header() {
 
   const handleSignOut = async () => {
     handleMenuClose()
-    await signOut({ callbackUrl: '/' })
+    // Use basePath-aware redirect
+    const basePath = typeof window !== 'undefined' && window.location.pathname.startsWith('/readmyname') ? '/readmyname' : ''
+    await signOut({ callbackUrl: `${basePath}/` })
   }
 
   const getRoleColor = (role?: string) => {
