@@ -9,7 +9,7 @@ module.exports = {
         NODE_ENV: "production",
         PORT: 3100,
         NEXTAUTH_URL: "https://www.aidsquilttouch.org/readmyname",
-        NEXTAUTH_SECRET: "Igp9/Y+F+Mz/syhzILUzTI5i7uaa+SEEqNeimJTYHWo="
+        NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET
       },
       instances: 1,
       autorestart: true,
